@@ -18,3 +18,6 @@ target/
 
 # MacOS silliness
 .DS_Store
+
+# vim swap files
+*.sw[a-p]
