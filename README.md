@@ -7,4 +7,5 @@
 
 ## Status
 
-It is just the rust/cargo helloworld, but there will be more commits RSN...
+It processes command line arguments and verifies that the directories are
+there and laid out as expected.
