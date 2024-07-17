@@ -24,8 +24,16 @@ fn main() {
     println!("Debug: {post_pattern}");
     for entry in glob(&post_pattern).expect("Failed to glob") {
         match entry {
-            Ok(path) => println!("{:?}", path.display()),
+            Ok(path) => process_file(&path.display().to_string()),
             Err(e) => println!("{:?}", e),
         }
     }
+}
+
+fn process_file(file_name: &str) {
+    let file_path = Path::new(file_name);
+    assert!(file_path.exists());
+    assert!(file_path.is_file());
+
+    println!("{:?}",file_name);
 }
