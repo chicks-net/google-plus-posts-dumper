@@ -7,15 +7,15 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     // dbg!(args);
     let base_path = &args[1];
-    assert_eq!(Path::new(base_path).exists(), true);
-    assert_eq!(Path::new(base_path).is_dir(), true);
+    assert!(Path::new(base_path).exists());
+    assert!(Path::new(base_path).is_dir());
     println!("Starting with {base_path}");
 
     // find posts directory
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
     let posts_path_string = posts_path.to_str().unwrap();
-    assert_eq!(posts_path.exists(), true);
-    assert_eq!(posts_path.is_dir(), true);
+    assert!(posts_path.exists());
+    assert!(posts_path.is_dir());
     println!("Posts are in {posts_path_string:?}");
 
     // Loop through html files
