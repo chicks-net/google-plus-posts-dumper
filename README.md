@@ -12,3 +12,10 @@
 It processes command line arguments and verifies that the directories are
 there and laid out as expected.  Then it finds the HTML files in that
 directory.
+
+## Disclaimer
+
+This code was written by human hands using `vim` without performance
+enhancing drugs or AI coding assistance.  If you're into those things,
+you be you.  But at this point in my life I'd rather see how well I
+can do naturally.  I feel confidant that I'm learning more this way.
