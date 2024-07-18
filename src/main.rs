@@ -6,16 +6,14 @@ fn main() {
     // get directory argument and verify that it is actually a directory
     let args: Vec<String> = env::args().collect();
     // dbg!(args);
-    let base_path = &args[1];
-    assert!(Path::new(base_path).exists());
-    assert!(Path::new(base_path).is_dir());
-    println!("Starting with {base_path}");
+    let base_path_arg = &args[1];
+    let base_path = Path::new(base_path_arg);
+    assert_dir(&base_path);
 
     // find posts directory
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
     let posts_path_string = posts_path.to_str().unwrap();
-    assert!(posts_path.exists());
-    assert!(posts_path.is_dir());
+    assert_dir(&posts_path);
     println!("Posts are in {posts_path_string:?}");
 
     // Loop through html files
@@ -28,6 +26,11 @@ fn main() {
             Err(e) => println!("{:?}", e),
         }
     }
+}
+
+fn assert_dir(dir_path: &Path) {
+    assert!(dir_path.exists());
+    assert!(dir_path.is_dir());
 }
 
 fn process_file(file_name: &str) {
