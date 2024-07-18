@@ -1,5 +1,5 @@
 try:
-  cargo run -- ~/Downloads/Takeout
+  cargo run -- ~/Downloads/Takeout ~/Documents/tmp
 
 check:
   cargo clippy
