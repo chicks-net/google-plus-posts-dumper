@@ -3,6 +3,7 @@ try:
 
 check:
   cargo clippy
+  cargo test
 
 sync:
   git checkout main
