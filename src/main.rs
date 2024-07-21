@@ -8,12 +8,12 @@ fn main() {
     // dbg!(args);
     let base_path_arg = &args[1];
     let base_path = Path::new(base_path_arg);
-    assert_dir(&base_path);
+    assert_dir(base_path);
 
     // destination directory
     let dest_path_arg = &args[2];
     let dest_path = Path::new(dest_path_arg);
-    assert_dir(&dest_path);
+    assert_dir(dest_path);
 
     // find posts directory
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
@@ -27,7 +27,7 @@ fn main() {
     println!("Debug: {post_pattern}");
     for entry in glob(&post_pattern).expect("Failed to glob") {
         match entry {
-            Ok(path) => process_file(&path.display().to_string(), &dest_path_arg),
+            Ok(path) => process_file(&path.display().to_string(), dest_path_arg),
             Err(e) => println!("{:?}", e),
         }
     }
