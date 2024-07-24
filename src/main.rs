@@ -1,5 +1,17 @@
+
+#[macro_use]
+extern crate html5ever;
+extern crate markup5ever_rcdom as rcdom;
+
 use std::env;
+use std::fs::File;
 use std::path::Path;
+use std::io;
+
+use html5ever::parse_document;
+use html5ever::tendril::TendrilSink;
+use rcdom::{Handle, NodeData, RcDom};
+
 use glob::glob;
 
 fn main() {
@@ -43,6 +55,12 @@ fn process_file(file_name: &str, dest_dir: &str) {
     assert!(file_path.exists());
     assert!(file_path.is_file());
 
-    println!("{:?}",file_name);
-    println!("{:?}",dest_dir);
+    println!("processing {:?}",file_name);
+    println!("\tinto {:?}",dest_dir);
+
+    // Open the path in read-only mode, returns `io::Result<File>`
+    let mut file_handle = match File::open(&file_path) {
+        Err(why) => panic!("couldn't open {}: {}", file_name, why),
+        Ok(file_handle) => file_handle,
+    };
 }
