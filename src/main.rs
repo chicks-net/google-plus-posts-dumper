@@ -6,7 +6,6 @@ extern crate markup5ever_rcdom as rcdom;
 use std::env;
 use std::fs::File;
 use std::path::Path;
-use std::io;
 
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
@@ -63,4 +62,63 @@ fn process_file(file_name: &str, dest_dir: &str) {
         Err(why) => panic!("couldn't open {}: {}", file_name, why),
         Ok(file_handle) => file_handle,
     };
+
+    // HTML parsing
+    let dom = parse_document(RcDom::default(), Default::default())
+        .from_utf8()
+        .read_from(&mut file_handle)
+        .unwrap();
+    walk(0, &dom.document);
+
+    if !dom.errors.is_empty() {
+        println!("\nParse errors:");
+        for err in dom.errors.iter() {
+            println!("    {}", err);
+        }
+    }
+
+    // Die for debugging
+    panic!("at the disco");
+}
+
+fn walk(indent: usize, handle: &Handle) {
+    let node = handle;
+    for _ in 0..indent {
+        print!(" ");
+    }
+    match node.data {
+        NodeData::Document => println!("#Document"),
+
+        NodeData::Doctype {
+            ref name,
+            ref public_id,
+            ref system_id,
+        } => println!("<!DOCTYPE {} \"{}\" \"{}\">", name, public_id, system_id),
+
+        NodeData::Text { ref contents } => {
+            println!("#text: {}", contents.borrow().escape_default())
+        },
+
+        NodeData::Comment { ref contents } => println!("<!-- {} -->", contents.escape_default()),
+
+        NodeData::Element {
+            ref name,
+            ref attrs,
+            ..
+        } => {
+            assert!(name.ns == ns!(html));
+            print!("<{}", name.local);
+            for attr in attrs.borrow().iter() {
+                assert!(attr.name.ns == ns!());
+                print!(" {}=\"{}\"", attr.name.local, attr.value);
+            }
+            println!(">");
+        },
+
+        NodeData::ProcessingInstruction { .. } => unreachable!(),
+    }
+
+    for child in node.children.borrow().iter() {
+        walk(indent + 4, child);
+    }
 }
