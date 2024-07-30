@@ -4,8 +4,8 @@
 
 ## Motivation
 
-* I wanted to do something in rust.
-* I had a pile of HTML from my google+ dump that needs to be converted to hugo-friendly Markdown.
+* I wanted to do something in rust since it has a reputation for being hard.
+* I had a pile of HTML from my google+ to convert to hugo-friendly Markdown.
 
 ## Status
 
@@ -22,7 +22,7 @@ can do naturally.  I feel confidant that I'm learning more this way.
 
 ## Documentation
 
-```
+```zsh
 cargo run -- $GOOGLE_PLUS_DUMP_DIR $MARKDOWN_DEST_DIR
 ```
 
@@ -32,4 +32,24 @@ It takes two arguments:
 `Google+ Stream/Posts` directory structure.
 1. The directory where you want the Markdown files created.
 
-You can see in the `justfile` how I've been testing this on my machine.
+### Be just
+
+Check out [casey/just](https://github.com/casey/just) if you haven't heard of
+`just` yet.
+
+You can see in the [`justfile`](./justfile) how I've been using it to build this
+project on my machine.  Running `just` without arguments will run the `try`
+stanza where I have setup my source and destination directories.  Feel free to
+edit this for your own convenience -- you would be `just`ified.  :grin:
+
+Other named recipes are:
+
+* `check` - run rust linters locally
+* `newdep crate_name` - add a new create dependancy
+* `sync` - get out of a branch after merging
+
+So `just check` would rerun the linters for you.
+
+I'm still new to `just`, but it has been helpful while developing this
+project.  I'm working on a blog post or youtube video about my happy
+experience with `just`.
