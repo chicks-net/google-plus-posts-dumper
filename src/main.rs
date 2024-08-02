@@ -71,7 +71,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
     walk(0, &dom.document);
 
     if !dom.errors.is_empty() {
-        println!("\nParse errors:");
+        println!("\nParse errors that may not matter:");
         for err in dom.errors.iter() {
             println!("    {}", err);
         }
@@ -83,6 +83,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
 
 fn walk(indent: usize, handle: &Handle) {
     let node = handle;
+    // println!("walk() indent={}", indent);
     for _ in 0..indent {
         print!(" ");
     }
