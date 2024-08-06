@@ -1,3 +1,20 @@
+//! # google-plus-posts-dumper
+//!
+//! Parse HTMl from posts in google+ data dump
+//! to generate hugu-friendly Markdown.
+//!
+//! Status: in develoment
+//!
+//! # Example
+//!
+//! ```rust
+//! assert_dir(Path::new("/"));
+//! ```
+//!
+//! I thought this would work with `cargo test` but maybe I need
+//! to jump through more hoops since so far it is ignoring it.
+//! I had it fenced with `-----` for `cargo test` but then
+//! `cargo doc` didn't format the HTML properly.
 
 #[macro_use]
 extern crate html5ever;
@@ -44,11 +61,13 @@ fn main() {
     }
 }
 
+/// Is it a valid directory?
 fn assert_dir(dir_path: &Path) {
     assert!(dir_path.exists());
     assert!(dir_path.is_dir());
 }
 
+/// Parse an HTML file and generate Markdown
 fn process_file(file_name: &str, dest_dir: &str) {
     let file_path = Path::new(file_name);
     assert!(file_path.exists());
@@ -81,6 +100,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
     panic!("at the disco");
 }
 
+/// Handle parsing an individual HTML element
 fn walk(indent: usize, handle: &Handle) {
     let node = handle;
     // println!("walk() indent={}", indent);

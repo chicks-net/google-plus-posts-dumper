@@ -10,7 +10,9 @@ check:
 
 newdep crate_name:
   cargo add {{crate_name}}
+  cargo doc
 
 sync:
   git checkout main
   git pull
+  cargo doc
