@@ -1,0 +1,49 @@
+---
+name: Verify
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - master
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    runs-on: ${{matrix.os}}
+
+    env:
+      RUSTFLAGS: --deny warnings
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Remove Broken WSL bash executable
+      if: ${{ matrix.os == 'windows-latest' }}
+      shell: cmd
+      run: |
+        takeown /F C:\Windows\System32\bash.exe
+        icacls C:\Windows\System32\bash.exe /grant administrators:F
+        del C:\Windows\System32\bash.exe
+
+    - uses: Swatinem/rust-cache@v2
+
+    - uses: extractions/setup-just@v1
+
+    - name: Check just version
+      run: just --version
+
+    - name: Test with just check
+      run: just check
