@@ -43,8 +43,7 @@ jobs:
     - uses: extractions/setup-just@v1
 
     - name: Check just version
-      run: |
-        just --version
+      run: just --version
 
-    - name: Test
-      run: cargo test --all
+    - name: Test with just check
+      run: just check
