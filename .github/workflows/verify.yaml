@@ -44,7 +44,7 @@ jobs:
 
     - name: Check just version
       run: |
-        /tmp/just --version
+        just --version
 
     - name: Test
       run: cargo test --all
