@@ -77,7 +77,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
     println!("\tinto {:?}",dest_dir);
 
     // Open the path in read-only mode, returns `io::Result<File>`
-    let mut file_handle = match File::open(&file_path) {
+    let mut file_handle = match File::open(file_path) {
         Err(why) => panic!("couldn't open {}: {}", file_name, why),
         Ok(file_handle) => file_handle,
     };
