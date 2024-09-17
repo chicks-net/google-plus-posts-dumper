@@ -9,7 +9,7 @@ backtrace:
 # what have you broken?
 check:
   cargo clippy
-  cargo test
+  cargo test --workspace
 
 # add a crate dependancy
 newdep crate_name:
