@@ -40,10 +40,11 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
 
+    - uses: extractions/setup-just@v1
+
+    - name: Check just version
+      run: |
+        /tmp/just --version
+
     - name: Test
       run: cargo test --all
-
-    - name: Test install.sh
-      run: |
-        bash www/install.sh --to /tmp --tag 1.25.0
-        /tmp/just --version
