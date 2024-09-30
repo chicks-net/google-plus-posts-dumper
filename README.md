@@ -1,12 +1,11 @@
 # google-plus-posts-dumper
 
 [![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
-
 ![GitHub License](https://img.shields.io/github/license/chicks-net/google-plus-posts-dumper)
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
-![GitHub branch status](https://img.shields.io/github/checks-status/chicks-net/google-plus-posts-dumper/main)
-![GitHub branch status runs](https://img.shields.io/github/checks-runs/chicks-net/google-plus-posts-dumper/main)
+![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/chicks-net/google-plus-posts-dumper)
+![OSSF-Scorecard Score](https://img.shields.io/ossf-scorecard/github.com/chicks-net/google-plus-posts-dumper)
 
 ## Motivation
 
