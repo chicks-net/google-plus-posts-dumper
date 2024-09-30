@@ -4,8 +4,6 @@
 ![GitHub License](https://img.shields.io/github/license/chicks-net/google-plus-posts-dumper)
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
-![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/chicks-net/google-plus-posts-dumper)
-![OSSF-Scorecard Score](https://img.shields.io/ossf-scorecard/github.com/chicks-net/google-plus-posts-dumper)
 
 ## Motivation
 
