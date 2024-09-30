@@ -6,6 +6,7 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
 ![GitHub branch status](https://img.shields.io/github/checks-status/chicks-net/google-plus-posts-dumper/main)
+![GitHub branch status runs](https://img.shields.io/github/checks-runs/chicks-net/google-plus-posts-dumper/main)
 
 ## Motivation
 
