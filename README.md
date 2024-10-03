@@ -4,6 +4,7 @@
 ![GitHub License](https://img.shields.io/github/license/chicks-net/google-plus-posts-dumper)
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
+![Dynamic TOML Badge](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fchicks-net%2Fwww-chicks-net%2Frefs%2Fheads%2Fmain%2Fhugo.toml&query=%24.theme%5B0%5D&label=theme%5B0%5D)
 
 ## Motivation
 
