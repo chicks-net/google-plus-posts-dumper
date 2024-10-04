@@ -22,7 +22,6 @@ jobs:
           - macos-latest
           - windows-latest
           - ubuntu-latest
-          - debian-latest
 
     runs-on: ${{matrix.os}}
 
