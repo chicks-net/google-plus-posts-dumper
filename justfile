@@ -43,7 +43,7 @@ pr: on_a_branch
   git stp
   git pushup
   #gh pr create --title "{{last_commit_message}}" --body "{{last_commit_message}} (Automated in justfile.)"
-  gh pr create --fill-verbose
+  gh pr create --fill-verbose --title "{{last_commit_message}}"
 
 # PR merge and return to main branch
 merge: on_a_branch
