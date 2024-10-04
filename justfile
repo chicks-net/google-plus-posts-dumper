@@ -39,7 +39,7 @@ on_a_branch:
 last_commit_message := `git log -1 --pretty=%B | grep .`
 pr_tmpfile := '/tmp/just-pr-body.txt'
 
-# PR create
+# PR create v2.0
 pr: on_a_branch
   git stp
   git pushup
