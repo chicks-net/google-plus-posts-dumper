@@ -37,13 +37,17 @@ on_a_branch:
 
 # thanks to https://stackoverflow.com/a/7293026/2002471 for the perfect git incantation
 last_commit_message := `git log -1 --pretty=%B | grep .`
+pr_tmpfile := '/tmp/just-pr-body.txt'
 
 # PR create
 pr: on_a_branch
   git stp
   git pushup
+  #gh pr create --fill-verbose
   #gh pr create --title "{{last_commit_message}}" --body "{{last_commit_message}} (Automated in justfile.)"
-  gh pr create --fill-verbose --title "{{last_commit_message}}"
+  echo -e "Did: {{last_commit_message}}\n\n(Automated in justfile.)\n" > {{ pr_tmpfile }}
+  gh pr create --title "{{last_commit_message}}" -F  {{ pr_tmpfile }}
+  rm {{ pr_tmpfile }}
 
 # PR merge and return to main branch
 merge: on_a_branch
