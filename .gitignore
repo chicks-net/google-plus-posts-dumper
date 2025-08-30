@@ -21,3 +21,6 @@ target/
 
 # vim swap files
 *.sw[a-p]
+
+# Test output directory
+test_output/
