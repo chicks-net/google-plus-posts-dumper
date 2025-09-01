@@ -5,11 +5,11 @@ import? '.just/gh-process.just'
 
 # run the code and see how it goes (default)
 try:
-  cargo run -- ~/Downloads/Takeout ~/Documents/tmp
+  cargo run -- examples test_output
 
 # run with backtrace enabled
 backtrace:
-  RUST_BACKTRACE=1 cargo run -- ~/Downloads/Takeout ~/Documents/tmp
+  RUST_BACKTRACE=1 cargo run -- examples test_output
 
 # what have you broken?
 check:
