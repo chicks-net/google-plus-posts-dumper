@@ -49,14 +49,19 @@ Check out [casey/just](https://github.com/casey/just) if you haven't heard of
 
 You can see in the [`justfile`](./justfile) how I've been using it to build this
 project on my machine.  Running `just` without arguments will run the `try`
-stanza where I have setup my source and destination directories.  Feel free to
-edit this for your own convenience -- you would be `just`ified.  :grin:
+stanza which processes the `examples/` directory and outputs to `test_output/`.
+
+The project includes:
+
+* `examples/` - Sample Google+ HTML files for testing the parser
+* `test_output/` - Generated Markdown files (gitignored)
 
 Other named recipes are:
 
 * `check` - run rust linters locally
 * `newdep crate_name` - add a new create dependancy
 * `sync` - get out of a branch after merging
+* `backtrace` - run with detailed error traces
 
 So `just check` would rerun the linters for you.
 
