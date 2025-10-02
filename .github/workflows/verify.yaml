@@ -13,12 +13,13 @@ defaults:
   run:
     shell: bash
 
+# in 2025 macos-latest is macos-15 and macos-13 is about to retire
 jobs:
   test:
     strategy:
       matrix:
         os:
-          - macos-13
+          - macos-14
           - macos-latest
           - windows-latest
           - ubuntu-latest
