@@ -24,3 +24,6 @@ target/
 
 # Test output directory
 test_output/
+
+# non-public examples
+examples/non-public/
