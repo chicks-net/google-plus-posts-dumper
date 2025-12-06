@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(just check)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(just try:*)"
     ],
     "deny": [],
     "ask": []
