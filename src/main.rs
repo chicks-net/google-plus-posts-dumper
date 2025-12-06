@@ -388,7 +388,7 @@ fn generate_markdown(post_data: &PostData) -> String {
     markdown
 }
 
-/// Helper functions
+// Helper functions
 
 /// Escape single quotes for TOML string values
 fn escape_toml_string(s: &str) -> String {
