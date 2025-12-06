@@ -20,13 +20,12 @@ extern crate html5ever;
 extern crate markup5ever_rcdom as rcdom;
 
 use std::env;
-use std::fs::{File, write};
+use std::fs::File;
 use std::path::Path;
 
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, NodeData, RcDom};
-use markup5ever::interface::Attribute;
 
 use glob::glob;
 
@@ -104,7 +103,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
     let output_path = Path::new(dest_dir).join(output_filename);
 
     // Write markdown file
-    match write(&output_path, markdown_content) {
+    match std::fs::write(&output_path, markdown_content) {
         Err(why) => panic!("couldn't write {}: {}", output_path.display(), why),
         Ok(_) => println!("\tgenerated {:?}", output_path),
     }
@@ -281,13 +280,13 @@ fn generate_markdown(post_data: &PostData) -> String {
     } else {
         String::from("Google+ Post")
     };
-    markdown.push_str(&format!("title = '{}'\n", title));
+    markdown.push_str(&format!("title = \"{}\"\n", title));
 
     // Date - use raw format from Google+ for now
     if !post_data.date.is_empty() {
-        markdown.push_str(&format!("date = '{}'\n", escape_toml_string(&post_data.date)));
+        markdown.push_str(&format!("date = \"{}\"\n", escape_toml_string(&post_data.date)));
     } else {
-        markdown.push_str("date = ''\n");
+        markdown.push_str("date = \"\"\n");
     }
 
     markdown.push_str("draft = false\n");
@@ -299,14 +298,14 @@ fn generate_markdown(post_data: &PostData) -> String {
     } else {
         String::from("")
     };
-    markdown.push_str(&format!("description = '{}'\n", description));
+    markdown.push_str(&format!("description = \"{}\"\n", description));
 
     // Canonical URL - leave empty for now
-    markdown.push_str("canonicalURL = ''\n");
+    markdown.push_str("canonicalURL = \"\"\n");
     markdown.push_str("ShowCanonicalLink = false\n");
 
     // Cover image settings
-    markdown.push_str("# cover.image = '/posts/'\n");
+    markdown.push_str("# cover.image = \"/posts/\"\n");
     markdown.push_str("cover.hidden = true\n");
 
     // Optional metadata as comments
@@ -390,24 +389,24 @@ fn generate_markdown(post_data: &PostData) -> String {
 
 // Helper functions
 
-/// Escape single quotes for TOML string values
+/// Escape double quotes and backslashes for TOML basic string values
 fn escape_toml_string(s: &str) -> String {
-    s.replace('\'', "''")
+    s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-fn has_class(attrs: &[Attribute], class_name: &str) -> bool {
+fn has_class(attrs: &[markup5ever::interface::Attribute], class_name: &str) -> bool {
     attrs.iter().any(|attr| {
         attr.name.local.as_ref() == "class" && attr.value.as_ref().contains(class_name)
     })
 }
 
-fn has_attr(attrs: &[Attribute], attr_name: &str, attr_value: &str) -> bool {
+fn has_attr(attrs: &[markup5ever::interface::Attribute], attr_name: &str, attr_value: &str) -> bool {
     attrs.iter().any(|attr| {
         attr.name.local.as_ref() == attr_name && attr.value.as_ref() == attr_value
     })
 }
 
-fn get_attr_value(attrs: &[Attribute], attr_name: &str) -> Option<String> {
+fn get_attr_value(attrs: &[markup5ever::interface::Attribute], attr_name: &str) -> Option<String> {
     attrs.iter()
         .find(|attr| attr.name.local.as_ref() == attr_name)
         .map(|attr| attr.value.as_ref().to_string())
