@@ -152,78 +152,83 @@ fn extract_post_data(handle: &Handle) -> PostData {
 fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
     let node = handle;
 
-    match node.data {
-        NodeData::Element { ref name, ref attrs, .. } => {
-            let attrs = attrs.borrow();
-            let tag_name = name.local.as_ref();
+    if let NodeData::Element { ref name, ref attrs, .. } = node.data {
+        let attrs = attrs.borrow();
+        let tag_name = name.local.as_ref();
 
-            // Extract author and date from header
-            if tag_name == "a" && has_class(&attrs, "author") {
-                post_data.author = get_text_content(handle);
-            }
+        // Extract author from header
+        if tag_name == "a" && has_class(&attrs, "author") {
+            post_data.author = get_text_content(handle);
+        }
 
-            // Extract main content
-            if has_class(&attrs, "main-content") {
-                post_data.content = get_text_content_formatted(handle);
+        // Extract date/time
+        if has_class(&attrs, "time") {
+            let date_text = get_text_content(handle);
+            if !date_text.is_empty() && post_data.date.is_empty() {
+                post_data.date = date_text;
             }
+        }
 
-            // Extract title from HTML title tag
-            if tag_name == "title" {
-                let title_text = get_text_content(handle);
-                if !title_text.is_empty() && title_text != "Google+ post" {
-                    post_data.title = title_text;
-                }
-            }
+        // Extract main content
+        if has_class(&attrs, "main-content") {
+            post_data.content = get_text_content_formatted(handle);
+        }
 
-            // Extract location information
-            if has_class(&attrs, "location") {
-                post_data.location = Some(get_text_content(handle));
+        // Extract title from HTML title tag
+        if tag_name == "title" {
+            let title_text = get_text_content(handle);
+            if !title_text.is_empty() && title_text != "Google+ post" {
+                post_data.title = title_text;
             }
+        }
 
-            // Extract images from albums or media links
-            if tag_name == "img" && has_class(&attrs, "media") {
-                if let Some(src) = get_attr_value(&attrs, "src") {
-                    post_data.images.push(src);
-                }
-            }
+        // Extract location information
+        if has_class(&attrs, "location") {
+            post_data.location = Some(get_text_content(handle));
+        }
 
-            // Extract video links
-            if has_class(&attrs, "video-placeholder") {
-                if let Some(href) = find_parent_href(handle) {
-                    post_data.video_url = Some(href);
-                }
+        // Extract images from albums or media links
+        if tag_name == "img" && has_class(&attrs, "media") {
+            if let Some(src) = get_attr_value(&attrs, "src") {
+                post_data.images.push(src);
             }
+        }
 
-            // Extract embedded links
-            if tag_name == "a" && has_attr(&attrs, "rel", "nofollow") {
-                if let Some(href) = get_attr_value(&attrs, "href") {
-                    let title = get_text_content(handle);
-                    post_data.links.push((href, title));
-                }
+        // Extract video links
+        if has_class(&attrs, "video-placeholder") {
+            if let Some(href) = find_parent_href(handle) {
+                post_data.video_url = Some(href);
             }
+        }
 
-            // Extract visibility
-            if has_class(&attrs, "visibility") {
-                post_data.visibility = get_text_content(handle).replace("Shared with: ", "");
+        // Extract embedded links
+        if tag_name == "a" && has_attr(&attrs, "rel", "nofollow") {
+            if let Some(href) = get_attr_value(&attrs, "href") {
+                let title = get_text_content(handle);
+                post_data.links.push((href, title));
             }
+        }
 
-            // Extract +1 information
-            if has_class(&attrs, "plus-oners") {
-                let plus_ones_text = get_text_content(handle);
-                if plus_ones_text.starts_with("+1'd by: ") {
-                    let names = plus_ones_text.replace("+1'd by: ", "");
-                    post_data.plus_ones = names.split(", ").map(|s| s.to_string()).collect();
-                }
-            }
+        // Extract visibility
+        if has_class(&attrs, "visibility") {
+            post_data.visibility = get_text_content(handle).replace("Shared with: ", "");
+        }
 
-            // Extract comments
-            if has_class(&attrs, "comment") {
-                if let Some(comment) = extract_comment(handle) {
-                    post_data.comments.push(comment);
-                }
+        // Extract +1 information
+        if has_class(&attrs, "plus-oners") {
+            let plus_ones_text = get_text_content(handle);
+            if plus_ones_text.starts_with("+1'd by: ") {
+                let names = plus_ones_text.replace("+1'd by: ", "");
+                post_data.plus_ones = names.split(", ").map(|s| s.to_string()).collect();
             }
-        },
-        _ => {}
+        }
+
+        // Extract comments
+        if has_class(&attrs, "comment") {
+            if let Some(comment) = extract_comment(handle) {
+                post_data.comments.push(comment);
+            }
+        }
     }
 
     // Recurse through children
@@ -239,20 +244,17 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
     let mut content = String::new();
 
     fn extract_comment_parts(node: &Handle, author: &mut String, date: &mut String, content: &mut String) {
-        match &node.data {
-            NodeData::Element { ref name, ref attrs, .. } => {
-                let attrs = attrs.borrow();
-                let tag_name = name.local.as_ref();
+        if let NodeData::Element { ref name, ref attrs, .. } = &node.data {
+            let attrs = attrs.borrow();
+            let tag_name = name.local.as_ref();
 
-                if tag_name == "a" && has_class(&attrs, "author") && author.is_empty() {
-                    *author = get_text_content(node);
-                } else if has_class(&attrs, "time") && date.is_empty() {
-                    *date = get_text_content(node);
-                } else if has_class(&attrs, "comment-content") && content.is_empty() {
-                    *content = get_text_content(node);
-                }
+            if tag_name == "a" && has_class(&attrs, "author") && author.is_empty() {
+                *author = get_text_content(node);
+            } else if has_class(&attrs, "time") && date.is_empty() {
+                *date = get_text_content(node);
+            } else if has_class(&attrs, "comment-content") && content.is_empty() {
+                *content = get_text_content(node);
             }
-            _ => {}
         }
 
         for child in node.children.borrow().iter() {
@@ -273,25 +275,75 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
 fn generate_markdown(post_data: &PostData) -> String {
     let mut markdown = String::new();
 
-    // Add title if available
-    if !post_data.title.is_empty() {
-        markdown.push_str(&format!("# {}\n\n", post_data.title));
+    // Generate TOML front matter
+    markdown.push_str("+++\n");
+
+    // Title - use post title if available, otherwise use truncated content
+    let title = if !post_data.title.is_empty() {
+        escape_toml_string(&post_data.title)
+    } else if !post_data.content.is_empty() {
+        let truncated = post_data.content.chars().take(50).collect::<String>();
+        escape_toml_string(&format!("{}...", truncated.trim()))
+    } else {
+        String::from("Google+ Post")
+    };
+    markdown.push_str(&format!("title = '{}'\n", title));
+
+    // Date - use raw format from Google+ for now
+    if !post_data.date.is_empty() {
+        markdown.push_str(&format!("date = '{}'\n", escape_toml_string(&post_data.date)));
+    } else {
+        markdown.push_str("date = ''\n");
     }
 
-    // Add post metadata
-    if !post_data.author.is_empty() {
-        markdown.push_str(&format!("**Author:** {}\n", post_data.author));
+    markdown.push_str("draft = false\n");
+
+    // Description - first 150 chars of content
+    let description = if !post_data.content.is_empty() {
+        let truncated = post_data.content.chars().take(150).collect::<String>();
+        escape_toml_string(truncated.trim())
+    } else {
+        String::from("")
+    };
+    markdown.push_str(&format!("description = '{}'\n", description));
+
+    // Canonical URL - leave empty for now
+    markdown.push_str("canonicalURL = ''\n");
+    markdown.push_str("ShowCanonicalLink = false\n");
+
+    // Cover image settings
+    markdown.push_str("# cover.image = '/posts/'\n");
+    markdown.push_str("cover.hidden = true\n");
+
+    // Optional metadata as comments
+    markdown.push_str("# keywords = [\"google-plus\", \"archive\"]\n");
+    markdown.push_str("# tags = [\"google-plus\"");
+    if !post_data.visibility.is_empty() {
+        markdown.push_str(&format!(", \"{}\"", escape_toml_string(&post_data.visibility.to_lowercase())));
     }
-    if !post_data.date.is_empty() {
-        markdown.push_str(&format!("**Date:** {}\n", post_data.date));
+    if post_data.location.is_some() {
+        markdown.push_str(", \"location\"");
+    }
+    markdown.push_str("]\n");
+
+    markdown.push_str("# ShowToc = false\n");
+    markdown.push_str("+++\n\n");
+
+    // Post metadata section
+    let mut metadata_parts = Vec::new();
+    if !post_data.author.is_empty() {
+        metadata_parts.push(format!("**Author:** {}", post_data.author));
     }
     if let Some(location) = &post_data.location {
-        markdown.push_str(&format!("**Location:** {}\n", location));
+        metadata_parts.push(format!("**Location:** {}", location));
     }
     if !post_data.visibility.is_empty() {
-        markdown.push_str(&format!("**Shared with:** {}\n", post_data.visibility));
+        metadata_parts.push(format!("**Shared with:** {}", post_data.visibility));
     }
-    markdown.push_str("\n");
+    if !metadata_parts.is_empty() {
+        markdown.push_str(&metadata_parts.join(" | "));
+        markdown.push_str("\n\n---\n\n");
+    }
 
     // Add main content
     if !post_data.content.is_empty() {
@@ -319,7 +371,7 @@ fn generate_markdown(post_data: &PostData) -> String {
             let link_text = if title.is_empty() { url } else { title };
             markdown.push_str(&format!("- [{}]({})\n", link_text, url));
         }
-        markdown.push_str("\n");
+        markdown.push('\n');
     }
 
     // Add +1s
@@ -343,6 +395,12 @@ fn generate_markdown(post_data: &PostData) -> String {
 }
 
 /// Helper functions
+
+/// Escape single quotes for TOML string values
+fn escape_toml_string(s: &str) -> String {
+    s.replace('\'', "''")
+}
+
 fn has_class(attrs: &[Attribute], class_name: &str) -> bool {
     attrs.iter().any(|attr| {
         attr.name.local.as_ref() == "class" && attr.value.as_ref().contains(class_name)
@@ -392,7 +450,7 @@ fn get_text_content_formatted(handle: &Handle) -> String {
             NodeData::Element { ref name, .. } => {
                 let tag_name = name.local.as_ref();
                 if tag_name == "br" {
-                    text.push_str("\n");
+                    text.push('\n');
                 } else if tag_name == "a" {
                     // Handle links within content
                     for child in node.children.borrow().iter() {
