@@ -16,17 +16,17 @@
 //! I had it fenced with `-----` for `cargo test` but then
 //! `cargo doc` didn't format the HTML properly.
 
-#[macro_use]
 extern crate html5ever;
 extern crate markup5ever_rcdom as rcdom;
 
 use std::env;
-use std::fs::File;
+use std::fs::{File, write};
 use std::path::Path;
 
 use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, NodeData, RcDom};
+use markup5ever::interface::Attribute;
 
 use glob::glob;
 
@@ -43,14 +43,19 @@ fn main() {
     let dest_path = Path::new(dest_path_arg);
     assert_dir(dest_path);
 
-    // find posts directory
+    // find posts directory - either Google+ structure or direct examples
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
-    let posts_path_string = posts_path.to_str().unwrap();
-    assert_dir(&posts_path);
+    let posts_path_string = if posts_path.exists() && posts_path.is_dir() {
+        // Original Google+ Takeout structure
+        posts_path.to_str().unwrap().to_string()
+    } else {
+        // Direct examples directory or other structure
+        base_path_arg.to_string()
+    };
     println!("Posts are in {posts_path_string:?}");
 
     // Loop through html files
-    let mut post_pattern: String = (&posts_path_string).to_string();
+    let mut post_pattern: String = posts_path_string.clone();
     post_pattern.push_str("/*.html");
     println!("Debug: {post_pattern}");
     for entry in glob(&post_pattern).expect("Failed to glob") {
@@ -87,7 +92,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
         .from_utf8()
         .read_from(&mut file_handle)
         .unwrap();
-    walk(0, &dom.document);
+    // Parse the document to extract post data
 
     if !dom.errors.is_empty() {
         println!("\nParse errors that may not matter:");
@@ -96,50 +101,339 @@ fn process_file(file_name: &str, dest_dir: &str) {
         }
     }
 
-    // Die for debugging
-    panic!("at the disco");
+    let post_data = extract_post_data(&dom.document);
+    let markdown_content = generate_markdown(&post_data);
+
+    // Generate output filename
+    let input_filename = file_path.file_stem().unwrap().to_str().unwrap();
+    let output_filename = format!("{}.md", input_filename);
+    let output_path = Path::new(dest_dir).join(output_filename);
+
+    // Write markdown file
+    match write(&output_path, markdown_content) {
+        Err(why) => panic!("couldn't write {}: {}", output_path.display(), why),
+        Ok(_) => println!("\tgenerated {:?}", output_path),
+    }
 }
 
-/// Handle parsing an individual HTML element
-fn walk(indent: usize, handle: &Handle) {
+#[derive(Debug, Default)]
+struct PostData {
+    author: String,
+    date: String,
+    title: String,
+    content: String,
+    location: Option<String>,
+    images: Vec<String>,
+    video_url: Option<String>,
+    links: Vec<(String, String)>, // (url, title)
+    visibility: String,
+    plus_ones: Vec<String>,
+    comments: Vec<Comment>,
+}
+
+#[derive(Debug)]
+struct Comment {
+    author: String,
+    date: String,
+    content: String,
+}
+
+/// Extract structured data from the HTML document
+fn extract_post_data(handle: &Handle) -> PostData {
+    let mut post_data = PostData::default();
+
+    // Find the main content div and extract data
+    find_post_elements(handle, &mut post_data);
+
+    post_data
+}
+
+/// Recursively search for post elements
+fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
     let node = handle;
-    // println!("walk() indent={}", indent);
-    for _ in 0..indent {
-        print!(" ");
-    }
+
     match node.data {
-        NodeData::Document => println!("#Document"),
+        NodeData::Element { ref name, ref attrs, .. } => {
+            let attrs = attrs.borrow();
+            let tag_name = name.local.as_ref();
 
-        NodeData::Doctype {
-            ref name,
-            ref public_id,
-            ref system_id,
-        } => println!("<!DOCTYPE {} \"{}\" \"{}\">", name, public_id, system_id),
-
-        NodeData::Text { ref contents } => {
-            println!("#text: {}", contents.borrow().escape_default())
-        },
-
-        NodeData::Comment { ref contents } => println!("<!-- {} -->", contents.escape_default()),
-
-        NodeData::Element {
-            ref name,
-            ref attrs,
-            ..
-        } => {
-            assert!(name.ns == ns!(html));
-            print!("<{}", name.local);
-            for attr in attrs.borrow().iter() {
-                assert!(attr.name.ns == ns!());
-                print!(" {}=\"{}\"", attr.name.local, attr.value);
+            // Extract author and date from header
+            if tag_name == "a" && has_class(&attrs, "author") {
+                post_data.author = get_text_content(handle);
             }
-            println!(">");
+
+            // Extract main content
+            if has_class(&attrs, "main-content") {
+                post_data.content = get_text_content_formatted(handle);
+            }
+
+            // Extract title from HTML title tag
+            if tag_name == "title" {
+                let title_text = get_text_content(handle);
+                if !title_text.is_empty() && title_text != "Google+ post" {
+                    post_data.title = title_text;
+                }
+            }
+
+            // Extract location information
+            if has_class(&attrs, "location") {
+                post_data.location = Some(get_text_content(handle));
+            }
+
+            // Extract images from albums or media links
+            if tag_name == "img" && has_class(&attrs, "media") {
+                if let Some(src) = get_attr_value(&attrs, "src") {
+                    post_data.images.push(src);
+                }
+            }
+
+            // Extract video links
+            if has_class(&attrs, "video-placeholder") {
+                if let Some(href) = find_parent_href(handle) {
+                    post_data.video_url = Some(href);
+                }
+            }
+
+            // Extract embedded links
+            if tag_name == "a" && has_attr(&attrs, "rel", "nofollow") {
+                if let Some(href) = get_attr_value(&attrs, "href") {
+                    let title = get_text_content(handle);
+                    post_data.links.push((href, title));
+                }
+            }
+
+            // Extract visibility
+            if has_class(&attrs, "visibility") {
+                post_data.visibility = get_text_content(handle).replace("Shared with: ", "");
+            }
+
+            // Extract +1 information
+            if has_class(&attrs, "plus-oners") {
+                let plus_ones_text = get_text_content(handle);
+                if plus_ones_text.starts_with("+1'd by: ") {
+                    let names = plus_ones_text.replace("+1'd by: ", "");
+                    post_data.plus_ones = names.split(", ").map(|s| s.to_string()).collect();
+                }
+            }
+
+            // Extract comments
+            if has_class(&attrs, "comment") {
+                if let Some(comment) = extract_comment(handle) {
+                    post_data.comments.push(comment);
+                }
+            }
         },
-
-        NodeData::ProcessingInstruction { .. } => unreachable!(),
+        _ => {}
     }
 
+    // Recurse through children
     for child in node.children.borrow().iter() {
-        walk(indent + 4, child);
+        find_post_elements(child, post_data);
     }
+}
+
+/// Extract comment data from a comment node
+fn extract_comment(handle: &Handle) -> Option<Comment> {
+    let mut author = String::new();
+    let mut date = String::new();
+    let mut content = String::new();
+
+    fn extract_comment_parts(node: &Handle, author: &mut String, date: &mut String, content: &mut String) {
+        match &node.data {
+            NodeData::Element { ref name, ref attrs, .. } => {
+                let attrs = attrs.borrow();
+                let tag_name = name.local.as_ref();
+
+                if tag_name == "a" && has_class(&attrs, "author") && author.is_empty() {
+                    *author = get_text_content(node);
+                } else if has_class(&attrs, "time") && date.is_empty() {
+                    *date = get_text_content(node);
+                } else if has_class(&attrs, "comment-content") && content.is_empty() {
+                    *content = get_text_content(node);
+                }
+            }
+            _ => {}
+        }
+
+        for child in node.children.borrow().iter() {
+            extract_comment_parts(child, author, date, content);
+        }
+    }
+
+    extract_comment_parts(handle, &mut author, &mut date, &mut content);
+
+    if !author.is_empty() && !content.is_empty() {
+        Some(Comment { author, date, content })
+    } else {
+        None
+    }
+}
+
+/// Generate markdown from post data
+fn generate_markdown(post_data: &PostData) -> String {
+    let mut markdown = String::new();
+
+    // Add title if available
+    if !post_data.title.is_empty() {
+        markdown.push_str(&format!("# {}\n\n", post_data.title));
+    }
+
+    // Add post metadata
+    if !post_data.author.is_empty() {
+        markdown.push_str(&format!("**Author:** {}\n", post_data.author));
+    }
+    if !post_data.date.is_empty() {
+        markdown.push_str(&format!("**Date:** {}\n", post_data.date));
+    }
+    if let Some(location) = &post_data.location {
+        markdown.push_str(&format!("**Location:** {}\n", location));
+    }
+    if !post_data.visibility.is_empty() {
+        markdown.push_str(&format!("**Shared with:** {}\n", post_data.visibility));
+    }
+    markdown.push_str("\n");
+
+    // Add main content
+    if !post_data.content.is_empty() {
+        markdown.push_str(&post_data.content);
+        markdown.push_str("\n\n");
+    }
+
+    // Add images
+    if !post_data.images.is_empty() {
+        markdown.push_str("## Images\n\n");
+        for image_url in &post_data.images {
+            markdown.push_str(&format!("![Image]({})\n\n", image_url));
+        }
+    }
+
+    // Add video
+    if let Some(video_url) = &post_data.video_url {
+        markdown.push_str(&format!("## Video\n\n[Watch Video]({})\n\n", video_url));
+    }
+
+    // Add links
+    if !post_data.links.is_empty() {
+        markdown.push_str("## Links\n\n");
+        for (url, title) in &post_data.links {
+            let link_text = if title.is_empty() { url } else { title };
+            markdown.push_str(&format!("- [{}]({})\n", link_text, url));
+        }
+        markdown.push_str("\n");
+    }
+
+    // Add +1s
+    if !post_data.plus_ones.is_empty() {
+        markdown.push_str(&format!("**+1'd by:** {}\n\n", post_data.plus_ones.join(", ")));
+    }
+
+    // Add comments
+    if !post_data.comments.is_empty() {
+        markdown.push_str("## Comments\n\n");
+        for comment in &post_data.comments {
+            markdown.push_str(&format!("**{}**", comment.author));
+            if !comment.date.is_empty() {
+                markdown.push_str(&format!(" - {}", comment.date));
+            }
+            markdown.push_str(&format!("\n\n{}\n\n---\n\n", comment.content));
+        }
+    }
+
+    markdown
+}
+
+/// Helper functions
+fn has_class(attrs: &[Attribute], class_name: &str) -> bool {
+    attrs.iter().any(|attr| {
+        attr.name.local.as_ref() == "class" && attr.value.as_ref().contains(class_name)
+    })
+}
+
+fn has_attr(attrs: &[Attribute], attr_name: &str, attr_value: &str) -> bool {
+    attrs.iter().any(|attr| {
+        attr.name.local.as_ref() == attr_name && attr.value.as_ref() == attr_value
+    })
+}
+
+fn get_attr_value(attrs: &[Attribute], attr_name: &str) -> Option<String> {
+    attrs.iter()
+        .find(|attr| attr.name.local.as_ref() == attr_name)
+        .map(|attr| attr.value.as_ref().to_string())
+}
+
+fn get_text_content(handle: &Handle) -> String {
+    let mut text = String::new();
+
+    fn collect_text(node: &Handle, text: &mut String) {
+        match &node.data {
+            NodeData::Text { ref contents } => {
+                text.push_str(&contents.borrow());
+            }
+            _ => {
+                for child in node.children.borrow().iter() {
+                    collect_text(child, text);
+                }
+            }
+        }
+    }
+
+    collect_text(handle, &mut text);
+    text.trim().to_string()
+}
+
+fn get_text_content_formatted(handle: &Handle) -> String {
+    let mut text = String::new();
+
+    fn collect_text_formatted(node: &Handle, text: &mut String) {
+        match &node.data {
+            NodeData::Text { ref contents } => {
+                text.push_str(&contents.borrow());
+            }
+            NodeData::Element { ref name, .. } => {
+                let tag_name = name.local.as_ref();
+                if tag_name == "br" {
+                    text.push_str("\n");
+                } else if tag_name == "a" {
+                    // Handle links within content
+                    for child in node.children.borrow().iter() {
+                        collect_text_formatted(child, text);
+                    }
+                } else {
+                    for child in node.children.borrow().iter() {
+                        collect_text_formatted(child, text);
+                    }
+                }
+            }
+            _ => {
+                for child in node.children.borrow().iter() {
+                    collect_text_formatted(child, text);
+                }
+            }
+        }
+    }
+
+    collect_text_formatted(handle, &mut text);
+    text.trim().to_string()
+}
+
+fn find_parent_href(handle: &Handle) -> Option<String> {
+    // Look for href in parent elements
+    fn search_parents(node: &Handle) -> Option<String> {
+        if let Some(parent) = node.parent.take() {
+            if let Some(parent_strong) = parent.upgrade() {
+                match &parent_strong.data {
+                    NodeData::Element { ref attrs, .. } => {
+                        if let Some(href) = get_attr_value(&attrs.borrow(), "href") {
+                            return Some(href);
+                        }
+                        return search_parents(&parent_strong);
+                    }
+                    _ => return search_parents(&parent_strong),
+                }
+            }
+        }
+        None
+    }
+
+    search_parents(handle)
 }
