@@ -33,12 +33,12 @@ fn main() {
     // get directory argument and verify that it is actually a directory
     let args: Vec<String> = env::args().collect();
     // dbg!(args);
-    let base_path_arg = &args[1];
+    let base_path_arg = args.get(1).expect("Missing required argument: source directory path (e.g., 'examples' or path to Google+ Takeout)");
     let base_path = Path::new(base_path_arg);
     assert_dir(base_path);
 
     // destination directory
-    let dest_path_arg = &args[2];
+    let dest_path_arg = args.get(2).expect("Missing required argument: destination directory path for generated Markdown files");
     let dest_path = Path::new(dest_path_arg);
     assert_dir(dest_path);
 
@@ -46,7 +46,9 @@ fn main() {
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
     let posts_path_string = if posts_path.exists() && posts_path.is_dir() {
         // Original Google+ Takeout structure
-        posts_path.to_str().unwrap().to_string()
+        posts_path.to_str()
+            .expect("Posts path contains invalid UTF-8 characters")
+            .to_string()
     } else {
         // Direct examples directory or other structure
         base_path_arg.to_string()
@@ -90,7 +92,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
         .read_from(&mut file_handle)
-        .unwrap();
+        .unwrap_or_else(|_| panic!("Failed to parse HTML from file: {}", file_name));
     // Parse the document to extract post data
     // Note: html5ever may report parsing errors, but they typically don't affect extraction
 
@@ -98,7 +100,10 @@ fn process_file(file_name: &str, dest_dir: &str) {
     let markdown_content = generate_markdown(&post_data);
 
     // Generate output filename
-    let input_filename = file_path.file_stem().unwrap().to_str().unwrap();
+    let input_filename = file_path.file_stem()
+        .unwrap_or_else(|| panic!("Failed to extract filename stem from: {}", file_name))
+        .to_str()
+        .unwrap_or_else(|| panic!("Filename contains invalid UTF-8: {}", file_name));
     let output_filename = format!("{}.md", input_filename);
     let output_path = Path::new(dest_dir).join(output_filename);
 
@@ -470,20 +475,29 @@ fn get_text_content_formatted(handle: &Handle) -> String {
 fn find_parent_href(handle: &Handle) -> Option<String> {
     // Look for href in parent elements
     fn search_parents(node: &Handle) -> Option<String> {
-        if let Some(parent) = node.parent.take() {
-            if let Some(parent_strong) = parent.upgrade() {
+        // Temporarily take parent ref, use it, then restore it
+        let parent_weak_opt = node.parent.take();
+        let result = if let Some(ref weak) = parent_weak_opt {
+            if let Some(parent_strong) = weak.upgrade() {
                 match &parent_strong.data {
                     NodeData::Element { ref attrs, .. } => {
                         if let Some(href) = get_attr_value(&attrs.borrow(), "href") {
-                            return Some(href);
+                            Some(href)
+                        } else {
+                            search_parents(&parent_strong)
                         }
-                        return search_parents(&parent_strong);
                     }
-                    _ => return search_parents(&parent_strong),
+                    _ => search_parents(&parent_strong),
                 }
+            } else {
+                None
             }
-        }
-        None
+        } else {
+            None
+        };
+        // Restore parent reference
+        node.parent.set(parent_weak_opt);
+        result
     }
 
     search_parents(handle)
