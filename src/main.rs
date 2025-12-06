@@ -93,13 +93,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
         .read_from(&mut file_handle)
         .unwrap();
     // Parse the document to extract post data
-
-    if !dom.errors.is_empty() {
-        println!("\nParse errors that may not matter:");
-        for err in dom.errors.iter() {
-            println!("    {}", err);
-        }
-    }
+    // Note: html5ever may report parsing errors, but they typically don't affect extraction
 
     let post_data = extract_post_data(&dom.document);
     let markdown_content = generate_markdown(&post_data);
