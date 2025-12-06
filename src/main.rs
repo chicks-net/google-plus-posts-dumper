@@ -1,9 +1,9 @@
 //! # google-plus-posts-dumper
 //!
-//! Parse HTMl from posts in google+ data dump
-//! to generate hugu-friendly Markdown.
+//! Parse HTML from posts in google+ data dump
+//! to generate hugo-friendly Markdown.
 //!
-//! Status: in develoment
+//! Status: in development
 //!
 //! # Example
 //!
