@@ -4,6 +4,10 @@ import? '.just/shellcheck.just'
 import? '.just/compliance.just'
 import? '.just/gh-process.just'
 
+# just list (default)
+list_recipes:
+  just --list
+
 # run the code and see how it goes (default)
 try:
   cargo run -- examples test_output
@@ -14,6 +18,7 @@ backtrace:
 
 # what have you broken?
 check:
+  cargo check
   cargo clippy
   cargo test --workspace
 
