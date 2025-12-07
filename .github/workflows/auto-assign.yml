@@ -20,7 +20,7 @@ jobs:
     - name: 'Auto-assign issue'
       uses: pozil/auto-assign-issue@v2
       with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          assignees: chicks-net
-          numOfAssignees: 1
-          allowSelfAssign: true
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        assignees: chicks-net
+        numOfAssignees: 1
+        allowSelfAssign: true
