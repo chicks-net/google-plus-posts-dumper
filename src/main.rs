@@ -28,6 +28,7 @@ use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, NodeData, RcDom};
 
 use glob::glob;
+use chrono::{DateTime, Utc};
 
 fn main() {
     // get directory argument and verify that it is actually a directory
@@ -104,7 +105,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
         .unwrap_or_else(|| panic!("Failed to extract filename stem from: {}", file_name))
         .to_str()
         .unwrap_or_else(|| panic!("Filename contains invalid UTF-8: {}", file_name));
-    let output_filename = format!("{}.md", input_filename);
+    let output_filename = format!("{}.md", format_filename_date(input_filename));
     let output_path = Path::new(dest_dir).join(output_filename);
 
     // Write markdown file
@@ -120,6 +121,8 @@ struct PostData {
     date: String,
     title: String,
     content: String,
+    reshare_author: Option<String>,
+    reshare_content: Option<String>,
     location: Option<String>,
     images: Vec<String>,
     video_url: Option<String>,
@@ -155,15 +158,21 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
         let tag_name = name.local.as_ref();
 
         // Extract author from header
-        if tag_name == "a" && has_class(&attrs, "author") {
+        if tag_name == "a" && has_class(&attrs, "author")
+            && post_data.author.is_empty() {
             post_data.author = get_text_content(handle);
         }
 
-        // Extract date/time
-        if has_class(&attrs, "time") {
-            let date_text = get_text_content(handle);
-            if !date_text.is_empty() && post_data.date.is_empty() {
-                post_data.date = date_text;
+        // Extract date/time from post header (not comments)
+        // Post dates are in <a> tags that link to /posts/
+        if tag_name == "a" && post_data.date.is_empty() {
+            if let Some(href) = get_attr_value(&attrs, "href") {
+                if href.contains("/posts/") {
+                    let date_text = get_text_content(handle);
+                    if !date_text.is_empty() {
+                        post_data.date = convert_to_utc(&date_text);
+                    }
+                }
             }
         }
 
@@ -200,7 +209,7 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
         }
 
         // Extract embedded links
-        if tag_name == "a" && has_attr(&attrs, "rel", "nofollow") {
+        if tag_name == "a" && (has_attr(&attrs, "rel", "nofollow") || has_class(&attrs, "link-embed")) {
             if let Some(href) = get_attr_value(&attrs, "href") {
                 let title = get_text_content(handle);
                 post_data.links.push((href, title));
@@ -218,6 +227,18 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
             if plus_ones_text.starts_with("+1'd by: ") {
                 let names = plus_ones_text.replace("+1'd by: ", "");
                 post_data.plus_ones = names.split(", ").map(|s| s.to_string()).collect();
+            }
+        }
+
+        // Extract reshare information
+        if tag_name == "a" && has_class(&attrs, "reshare-attribution") {
+            let attribution_text = get_text_content(handle);
+            // Extract author name from "Originally shared by Author Name"
+            post_data.reshare_author = Some(attribution_text.replace("Originally shared by ", ""));
+
+            // Get reshare content from parent div's text nodes
+            if let Some(reshare_content) = extract_reshare_content(handle) {
+                post_data.reshare_content = Some(reshare_content);
             }
         }
 
@@ -249,7 +270,10 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
             if tag_name == "a" && has_class(&attrs, "author") && author.is_empty() {
                 *author = get_text_content(node);
             } else if has_class(&attrs, "time") && date.is_empty() {
-                *date = get_text_content(node);
+                let date_text = get_text_content(node);
+                // Comment dates have "- " prefix in the HTML, strip it
+                let date_text = date_text.trim_start_matches("- ").trim();
+                *date = convert_to_utc(date_text);
             } else if has_class(&attrs, "comment-content") && content.is_empty() {
                 *content = get_text_content(node);
             }
@@ -267,6 +291,71 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
     } else {
         None
     }
+}
+
+/// Extract reshare content from the parent div of a reshare-attribution element
+fn extract_reshare_content(reshare_attr_handle: &Handle) -> Option<String> {
+    // Get parent element
+    let parent_weak_opt = reshare_attr_handle.parent.take();
+    let result = if let Some(ref weak) = parent_weak_opt {
+        if let Some(parent_strong) = weak.upgrade() {
+            // Extract text content from parent, excluding certain elements
+            let content = extract_reshare_text(&parent_strong);
+            let cleaned = content.trim().to_string();
+            if cleaned.is_empty() {
+                None
+            } else {
+                Some(cleaned)
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    // Restore parent reference
+    reshare_attr_handle.parent.set(parent_weak_opt);
+    result
+}
+
+/// Extract reshare text, excluding reshare-attribution and link-embed elements
+fn extract_reshare_text(handle: &Handle) -> String {
+    let mut text = String::new();
+
+    fn collect_reshare_text(node: &Handle, text: &mut String) {
+        match &node.data {
+            NodeData::Element { ref name, ref attrs, .. } => {
+                let attrs = attrs.borrow();
+                let tag_name = name.local.as_ref();
+
+                // Skip reshare-attribution and link-embed elements
+                if has_class(&attrs, "reshare-attribution") || has_class(&attrs, "link-embed") {
+                    return;
+                }
+
+                // Handle br tags as newlines
+                if tag_name == "br" {
+                    text.push('\n');
+                } else {
+                    // Recurse into other elements
+                    for child in node.children.borrow().iter() {
+                        collect_reshare_text(child, text);
+                    }
+                }
+            }
+            NodeData::Text { ref contents } => {
+                text.push_str(&contents.borrow());
+            }
+            _ => {
+                for child in node.children.borrow().iter() {
+                    collect_reshare_text(child, text);
+                }
+            }
+        }
+    }
+
+    collect_reshare_text(handle, &mut text);
+    text.trim().to_string()
 }
 
 /// Generate markdown from post data
@@ -349,6 +438,15 @@ fn generate_markdown(post_data: &PostData) -> String {
         markdown.push_str("\n\n");
     }
 
+    // Add reshare information
+    if let Some(reshare_author) = &post_data.reshare_author {
+        markdown.push_str(&format!("**Originally shared by {}**\n\n", reshare_author));
+        if let Some(reshare_content) = &post_data.reshare_content {
+            markdown.push_str(reshare_content);
+            markdown.push_str("\n\n");
+        }
+    }
+
     // Add images
     if !post_data.images.is_empty() {
         markdown.push_str("## Images\n\n");
@@ -397,6 +495,49 @@ fn generate_markdown(post_data: &PostData) -> String {
 /// Escape double quotes and backslashes for TOML basic string values
 fn escape_toml_string(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Convert Google+ datetime string to UTC
+/// Input format: "YYYY-MM-DD HH:MM:SS±HHMM" (e.g., "2011-08-14 20:39:28-0700")
+/// Output format: ISO 8601 UTC (e.g., "2011-08-15T03:39:28Z")
+fn convert_to_utc(datetime_str: &str) -> String {
+    // Parse the datetime with timezone offset
+    match DateTime::parse_from_str(datetime_str, "%Y-%m-%d %H:%M:%S%z") {
+        Ok(dt) => {
+            // Convert to UTC
+            let utc_dt: DateTime<Utc> = dt.with_timezone(&Utc);
+            // Format as ISO 8601 with Z suffix
+            utc_dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+        }
+        Err(_) => {
+            // If parsing fails, return original string
+            datetime_str.to_string()
+        }
+    }
+}
+
+/// Format filename date from YYYYMMDD to YYYY-MM-DD and clean up spacing
+/// Input: "20110814 - Today is my first day..." or any other filename
+/// Output: "2011-08-14-Today_is_my_first_day..."
+/// - Converts YYYYMMDD to YYYY-MM-DD
+/// - Replaces " - " with "-"
+/// - Replaces remaining spaces with underscores
+fn format_filename_date(filename: &str) -> String {
+    // Check if filename starts with 8 digits
+    if filename.len() >= 8 && filename.chars().take(8).all(|c| c.is_ascii_digit()) {
+        let year = &filename[0..4];
+        let month = &filename[4..6];
+        let day = &filename[6..8];
+        let rest = &filename[8..];
+
+        // Replace " - " with "-" and then replace all spaces with underscores
+        let rest_formatted = rest.trim_start_matches(" - ").replace(' ', "_");
+
+        format!("{}-{}-{}-{}", year, month, day, rest_formatted)
+    } else {
+        // For non-date filenames, just replace spaces with underscores
+        filename.replace(' ', "_")
+    }
 }
 
 fn has_class(attrs: &[markup5ever::interface::Attribute], class_name: &str) -> bool {
