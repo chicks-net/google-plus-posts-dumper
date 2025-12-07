@@ -27,8 +27,8 @@ use html5ever::parse_document;
 use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, NodeData, RcDom};
 
-use glob::glob;
 use chrono::{DateTime, Utc};
+use glob::glob;
 
 fn main() {
     // get directory argument and verify that it is actually a directory
@@ -39,7 +39,9 @@ fn main() {
     assert_dir(base_path);
 
     // destination directory
-    let dest_path_arg = args.get(2).expect("Missing required argument: destination directory path for generated Markdown files");
+    let dest_path_arg = args.get(2).expect(
+        "Missing required argument: destination directory path for generated Markdown files",
+    );
     let dest_path = Path::new(dest_path_arg);
     assert_dir(dest_path);
 
@@ -47,7 +49,8 @@ fn main() {
     let posts_path = Path::new(base_path).join("Google+ Stream/Posts");
     let posts_path_string = if posts_path.exists() && posts_path.is_dir() {
         // Original Google+ Takeout structure
-        posts_path.to_str()
+        posts_path
+            .to_str()
             .expect("Posts path contains invalid UTF-8 characters")
             .to_string()
     } else {
@@ -80,8 +83,8 @@ fn process_file(file_name: &str, dest_dir: &str) {
     assert!(file_path.exists());
     assert!(file_path.is_file());
 
-    println!("processing {:?}",file_name);
-    println!("\tinto {:?}",dest_dir);
+    println!("processing {:?}", file_name);
+    println!("\tinto {:?}", dest_dir);
 
     // Open the path in read-only mode, returns `io::Result<File>`
     let mut file_handle = match File::open(file_path) {
@@ -101,7 +104,8 @@ fn process_file(file_name: &str, dest_dir: &str) {
     let markdown_content = generate_markdown(&post_data);
 
     // Generate output filename
-    let input_filename = file_path.file_stem()
+    let input_filename = file_path
+        .file_stem()
         .unwrap_or_else(|| panic!("Failed to extract filename stem from: {}", file_name))
         .to_str()
         .unwrap_or_else(|| panic!("Filename contains invalid UTF-8: {}", file_name));
@@ -153,13 +157,17 @@ fn extract_post_data(handle: &Handle) -> PostData {
 fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
     let node = handle;
 
-    if let NodeData::Element { ref name, ref attrs, .. } = node.data {
+    if let NodeData::Element {
+        ref name,
+        ref attrs,
+        ..
+    } = node.data
+    {
         let attrs = attrs.borrow();
         let tag_name = name.local.as_ref();
 
         // Extract author from header
-        if tag_name == "a" && has_class(&attrs, "author")
-            && post_data.author.is_empty() {
+        if tag_name == "a" && has_class(&attrs, "author") && post_data.author.is_empty() {
             post_data.author = get_text_content(handle);
         }
 
@@ -209,7 +217,9 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
         }
 
         // Extract embedded links
-        if tag_name == "a" && (has_attr(&attrs, "rel", "nofollow") || has_class(&attrs, "link-embed")) {
+        if tag_name == "a"
+            && (has_attr(&attrs, "rel", "nofollow") || has_class(&attrs, "link-embed"))
+        {
             if let Some(href) = get_attr_value(&attrs, "href") {
                 let title = get_text_content(handle);
                 post_data.links.push((href, title));
@@ -262,8 +272,18 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
     let mut date = String::new();
     let mut content = String::new();
 
-    fn extract_comment_parts(node: &Handle, author: &mut String, date: &mut String, content: &mut String) {
-        if let NodeData::Element { ref name, ref attrs, .. } = &node.data {
+    fn extract_comment_parts(
+        node: &Handle,
+        author: &mut String,
+        date: &mut String,
+        content: &mut String,
+    ) {
+        if let NodeData::Element {
+            ref name,
+            ref attrs,
+            ..
+        } = &node.data
+        {
             let attrs = attrs.borrow();
             let tag_name = name.local.as_ref();
 
@@ -287,7 +307,11 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
     extract_comment_parts(handle, &mut author, &mut date, &mut content);
 
     if !author.is_empty() && !content.is_empty() {
-        Some(Comment { author, date, content })
+        Some(Comment {
+            author,
+            date,
+            content,
+        })
     } else {
         None
     }
@@ -324,7 +348,11 @@ fn extract_reshare_text(handle: &Handle) -> String {
 
     fn collect_reshare_text(node: &Handle, text: &mut String) {
         match &node.data {
-            NodeData::Element { ref name, ref attrs, .. } => {
+            NodeData::Element {
+                ref name,
+                ref attrs,
+                ..
+            } => {
                 let attrs = attrs.borrow();
                 let tag_name = name.local.as_ref();
 
@@ -378,7 +406,10 @@ fn generate_markdown(post_data: &PostData) -> String {
 
     // Date - use raw format from Google+ for now
     if !post_data.date.is_empty() {
-        markdown.push_str(&format!("date = \"{}\"\n", escape_toml_string(&post_data.date)));
+        markdown.push_str(&format!(
+            "date = \"{}\"\n",
+            escape_toml_string(&post_data.date)
+        ));
     } else {
         markdown.push_str("date = \"\"\n");
     }
@@ -406,7 +437,10 @@ fn generate_markdown(post_data: &PostData) -> String {
     markdown.push_str("# keywords = [\"google-plus\", \"archive\"]\n");
     markdown.push_str("# tags = [\"google-plus\"");
     if !post_data.visibility.is_empty() {
-        markdown.push_str(&format!(", \"{}\"", escape_toml_string(&post_data.visibility.to_lowercase())));
+        markdown.push_str(&format!(
+            ", \"{}\"",
+            escape_toml_string(&post_data.visibility.to_lowercase())
+        ));
     }
     if post_data.location.is_some() {
         markdown.push_str(", \"location\"");
@@ -472,7 +506,10 @@ fn generate_markdown(post_data: &PostData) -> String {
 
     // Add +1s
     if !post_data.plus_ones.is_empty() {
-        markdown.push_str(&format!("**+1'd by:** {}\n\n", post_data.plus_ones.join(", ")));
+        markdown.push_str(&format!(
+            "**+1'd by:** {}\n\n",
+            post_data.plus_ones.join(", ")
+        ));
     }
 
     // Add comments
@@ -541,19 +578,24 @@ fn format_filename_date(filename: &str) -> String {
 }
 
 fn has_class(attrs: &[markup5ever::interface::Attribute], class_name: &str) -> bool {
-    attrs.iter().any(|attr| {
-        attr.name.local.as_ref() == "class" && attr.value.as_ref().contains(class_name)
-    })
+    attrs
+        .iter()
+        .any(|attr| attr.name.local.as_ref() == "class" && attr.value.as_ref().contains(class_name))
 }
 
-fn has_attr(attrs: &[markup5ever::interface::Attribute], attr_name: &str, attr_value: &str) -> bool {
-    attrs.iter().any(|attr| {
-        attr.name.local.as_ref() == attr_name && attr.value.as_ref() == attr_value
-    })
+fn has_attr(
+    attrs: &[markup5ever::interface::Attribute],
+    attr_name: &str,
+    attr_value: &str,
+) -> bool {
+    attrs
+        .iter()
+        .any(|attr| attr.name.local.as_ref() == attr_name && attr.value.as_ref() == attr_value)
 }
 
 fn get_attr_value(attrs: &[markup5ever::interface::Attribute], attr_name: &str) -> Option<String> {
-    attrs.iter()
+    attrs
+        .iter()
         .find(|attr| attr.name.local.as_ref() == attr_name)
         .map(|attr| attr.value.as_ref().to_string())
 }
@@ -669,10 +711,7 @@ mod tests {
 
     #[test]
     fn test_escape_toml_string_backslashes() {
-        assert_eq!(
-            escape_toml_string("C:\\Users\\path"),
-            "C:\\\\Users\\\\path"
-        );
+        assert_eq!(escape_toml_string("C:\\Users\\path"), "C:\\\\Users\\\\path");
     }
 
     #[test]
@@ -744,10 +783,7 @@ mod tests {
     #[test]
     fn test_convert_to_utc_invalid_format() {
         // Should return original string on parse error
-        assert_eq!(
-            convert_to_utc("not a date"),
-            "not a date"
-        );
+        assert_eq!(convert_to_utc("not a date"), "not a date");
     }
 
     #[test]
@@ -776,10 +812,7 @@ mod tests {
     #[test]
     fn test_format_filename_date_no_separator() {
         // Function always adds dash after date
-        assert_eq!(
-            format_filename_date("20110814Today"),
-            "2011-08-14-Today"
-        );
+        assert_eq!(format_filename_date("20110814Today"), "2011-08-14-Today");
     }
 
     #[test]
@@ -792,35 +825,23 @@ mod tests {
 
     #[test]
     fn test_format_filename_date_just_date() {
-        assert_eq!(
-            format_filename_date("20110814"),
-            "2011-08-14-"
-        );
+        assert_eq!(format_filename_date("20110814"), "2011-08-14-");
     }
 
     #[test]
     fn test_format_filename_date_non_date() {
-        assert_eq!(
-            format_filename_date("random file name"),
-            "random_file_name"
-        );
+        assert_eq!(format_filename_date("random file name"), "random_file_name");
     }
 
     #[test]
     fn test_format_filename_date_short_filename() {
-        assert_eq!(
-            format_filename_date("short"),
-            "short"
-        );
+        assert_eq!(format_filename_date("short"), "short");
     }
 
     #[test]
     fn test_format_filename_date_partial_date() {
         // 7 digits, not 8 - should not be treated as date
-        assert_eq!(
-            format_filename_date("2011081 - test"),
-            "2011081_-_test"
-        );
+        assert_eq!(format_filename_date("2011081 - test"), "2011081_-_test");
     }
 
     #[test]
@@ -843,10 +864,7 @@ mod tests {
 
     #[test]
     fn test_format_filename_date_empty() {
-        assert_eq!(
-            format_filename_date(""),
-            ""
-        );
+        assert_eq!(format_filename_date(""), "");
     }
 
     #[test]
