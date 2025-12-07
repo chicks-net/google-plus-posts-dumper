@@ -120,6 +120,8 @@ struct PostData {
     date: String,
     title: String,
     content: String,
+    reshare_author: Option<String>,
+    reshare_content: Option<String>,
     location: Option<String>,
     images: Vec<String>,
     video_url: Option<String>,
@@ -156,14 +158,21 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
 
         // Extract author from header
         if tag_name == "a" && has_class(&attrs, "author") {
-            post_data.author = get_text_content(handle);
+            if post_data.author.is_empty() {
+                post_data.author = get_text_content(handle);
+            }
         }
 
-        // Extract date/time
-        if has_class(&attrs, "time") {
-            let date_text = get_text_content(handle);
-            if !date_text.is_empty() && post_data.date.is_empty() {
-                post_data.date = date_text;
+        // Extract date/time from post header (not comments)
+        // Post dates are in <a> tags that link to /posts/
+        if tag_name == "a" && post_data.date.is_empty() {
+            if let Some(href) = get_attr_value(&attrs, "href") {
+                if href.contains("/posts/") {
+                    let date_text = get_text_content(handle);
+                    if !date_text.is_empty() {
+                        post_data.date = date_text;
+                    }
+                }
             }
         }
 
@@ -221,6 +230,18 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
             }
         }
 
+        // Extract reshare information
+        if tag_name == "a" && has_class(&attrs, "reshare-attribution") {
+            let attribution_text = get_text_content(handle);
+            // Extract author name from "Originally shared by Author Name"
+            post_data.reshare_author = Some(attribution_text.replace("Originally shared by ", ""));
+
+            // Get reshare content from parent div's text nodes
+            if let Some(reshare_content) = extract_reshare_content(handle) {
+                post_data.reshare_content = Some(reshare_content);
+            }
+        }
+
         // Extract comments
         if has_class(&attrs, "comment") {
             if let Some(comment) = extract_comment(handle) {
@@ -267,6 +288,71 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
     } else {
         None
     }
+}
+
+/// Extract reshare content from the parent div of a reshare-attribution element
+fn extract_reshare_content(reshare_attr_handle: &Handle) -> Option<String> {
+    // Get parent element
+    let parent_weak_opt = reshare_attr_handle.parent.take();
+    let result = if let Some(ref weak) = parent_weak_opt {
+        if let Some(parent_strong) = weak.upgrade() {
+            // Extract text content from parent, excluding certain elements
+            let content = extract_reshare_text(&parent_strong);
+            let cleaned = content.trim().to_string();
+            if cleaned.is_empty() {
+                None
+            } else {
+                Some(cleaned)
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    // Restore parent reference
+    reshare_attr_handle.parent.set(parent_weak_opt);
+    result
+}
+
+/// Extract reshare text, excluding reshare-attribution and link-embed elements
+fn extract_reshare_text(handle: &Handle) -> String {
+    let mut text = String::new();
+
+    fn collect_reshare_text(node: &Handle, text: &mut String) {
+        match &node.data {
+            NodeData::Element { ref name, ref attrs, .. } => {
+                let attrs = attrs.borrow();
+                let tag_name = name.local.as_ref();
+
+                // Skip reshare-attribution and link-embed elements
+                if has_class(&attrs, "reshare-attribution") || has_class(&attrs, "link-embed") {
+                    return;
+                }
+
+                // Handle br tags as newlines
+                if tag_name == "br" {
+                    text.push('\n');
+                } else {
+                    // Recurse into other elements
+                    for child in node.children.borrow().iter() {
+                        collect_reshare_text(child, text);
+                    }
+                }
+            }
+            NodeData::Text { ref contents } => {
+                text.push_str(&contents.borrow());
+            }
+            _ => {
+                for child in node.children.borrow().iter() {
+                    collect_reshare_text(child, text);
+                }
+            }
+        }
+    }
+
+    collect_reshare_text(handle, &mut text);
+    text.trim().to_string()
 }
 
 /// Generate markdown from post data
@@ -347,6 +433,15 @@ fn generate_markdown(post_data: &PostData) -> String {
     if !post_data.content.is_empty() {
         markdown.push_str(&post_data.content);
         markdown.push_str("\n\n");
+    }
+
+    // Add reshare information
+    if let Some(reshare_author) = &post_data.reshare_author {
+        markdown.push_str(&format!("**Originally shared by {}**\n\n", reshare_author));
+        if let Some(reshare_content) = &post_data.reshare_content {
+            markdown.push_str(reshare_content);
+            markdown.push_str("\n\n");
+        }
     }
 
     // Add images
