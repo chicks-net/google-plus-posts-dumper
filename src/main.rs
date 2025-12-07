@@ -200,7 +200,7 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
         }
 
         // Extract embedded links
-        if tag_name == "a" && has_attr(&attrs, "rel", "nofollow") {
+        if tag_name == "a" && (has_attr(&attrs, "rel", "nofollow") || has_class(&attrs, "link-embed")) {
             if let Some(href) = get_attr_value(&attrs, "href") {
                 let title = get_text_content(handle);
                 post_data.links.push((href, title));
