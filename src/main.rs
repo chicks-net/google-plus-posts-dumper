@@ -28,6 +28,7 @@ use html5ever::tendril::TendrilSink;
 use rcdom::{Handle, NodeData, RcDom};
 
 use glob::glob;
+use chrono::{DateTime, Utc};
 
 fn main() {
     // get directory argument and verify that it is actually a directory
@@ -169,7 +170,7 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
                 if href.contains("/posts/") {
                     let date_text = get_text_content(handle);
                     if !date_text.is_empty() {
-                        post_data.date = date_text;
+                        post_data.date = convert_to_utc(&date_text);
                     }
                 }
             }
@@ -269,7 +270,10 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
             if tag_name == "a" && has_class(&attrs, "author") && author.is_empty() {
                 *author = get_text_content(node);
             } else if has_class(&attrs, "time") && date.is_empty() {
-                *date = get_text_content(node);
+                let date_text = get_text_content(node);
+                // Comment dates have "- " prefix in the HTML, strip it
+                let date_text = date_text.trim_start_matches("- ").trim();
+                *date = convert_to_utc(date_text);
             } else if has_class(&attrs, "comment-content") && content.is_empty() {
                 *content = get_text_content(node);
             }
@@ -491,6 +495,25 @@ fn generate_markdown(post_data: &PostData) -> String {
 /// Escape double quotes and backslashes for TOML basic string values
 fn escape_toml_string(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Convert Google+ datetime string to UTC
+/// Input format: "YYYY-MM-DD HH:MM:SS±HHMM" (e.g., "2011-08-14 20:39:28-0700")
+/// Output format: ISO 8601 UTC (e.g., "2011-08-15T03:39:28Z")
+fn convert_to_utc(datetime_str: &str) -> String {
+    // Parse the datetime with timezone offset
+    match DateTime::parse_from_str(datetime_str, "%Y-%m-%d %H:%M:%S%z") {
+        Ok(dt) => {
+            // Convert to UTC
+            let utc_dt: DateTime<Utc> = dt.with_timezone(&Utc);
+            // Format as ISO 8601 with Z suffix
+            utc_dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+        }
+        Err(_) => {
+            // If parsing fails, return original string
+            datetime_str.to_string()
+        }
+    }
 }
 
 fn has_class(attrs: &[markup5ever::interface::Attribute], class_name: &str) -> bool {
