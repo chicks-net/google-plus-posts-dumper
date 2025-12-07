@@ -47,5 +47,8 @@ jobs:
     - name: Check just version
       run: just --version
 
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+
     - name: Test with just check
       run: just check
