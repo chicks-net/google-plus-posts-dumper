@@ -516,9 +516,12 @@ fn convert_to_utc(datetime_str: &str) -> String {
     }
 }
 
-/// Format filename date from YYYYMMDD to YYYY-MM-DD
+/// Format filename date from YYYYMMDD to YYYY-MM-DD and clean up spacing
 /// Input: "20110814 - Today is my first day..." or any other filename
-/// Output: "2011-08-14 - Today is my first day..." or original if not matching pattern
+/// Output: "2011-08-14-Today_is_my_first_day..."
+/// - Converts YYYYMMDD to YYYY-MM-DD
+/// - Replaces " - " with "-"
+/// - Replaces remaining spaces with underscores
 fn format_filename_date(filename: &str) -> String {
     // Check if filename starts with 8 digits
     if filename.len() >= 8 && filename.chars().take(8).all(|c| c.is_ascii_digit()) {
@@ -526,9 +529,14 @@ fn format_filename_date(filename: &str) -> String {
         let month = &filename[4..6];
         let day = &filename[6..8];
         let rest = &filename[8..];
-        format!("{}-{}-{}{}", year, month, day, rest)
+
+        // Replace " - " with "-" and then replace all spaces with underscores
+        let rest_formatted = rest.trim_start_matches(" - ").replace(' ', "_");
+
+        format!("{}-{}-{}-{}", year, month, day, rest_formatted)
     } else {
-        filename.to_string()
+        // For non-date filenames, just replace spaces with underscores
+        filename.replace(' ', "_")
     }
 }
 
