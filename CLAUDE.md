@@ -11,7 +11,7 @@ This is a Rust command-line tool that parses HTML files from Google+ data dumps 
 - **Single-file application**: `src/main.rs` contains all functionality
 - **HTML parsing**: Uses `html5ever` and `markup5ever_rcdom` for DOM parsing
 - **File handling**: Uses `glob` crate for pattern matching HTML files
-- **Structure**: 
+- **Structure**:
   - `main()`: Argument parsing, directory validation, file discovery
   - `assert_dir()`: Directory existence validation
   - `process_file()`: HTML parsing and processing (incomplete)
@@ -20,6 +20,7 @@ This is a Rust command-line tool that parses HTML files from Google+ data dumps 
 ## Development Commands
 
 ### Build and Test
+
 ```bash
 # Run linting and tests
 just check
@@ -29,6 +30,7 @@ cargo test --workspace
 ```
 
 ### Running the Application
+
 ```bash
 # Default run with hardcoded paths
 just
@@ -41,6 +43,7 @@ just backtrace
 ```
 
 ### Development Workflow
+
 ```bash
 # Add new dependency
 just newdep <crate_name>
@@ -87,4 +90,5 @@ The application now successfully converts Google+ HTML files to structured Markd
 
 ## Testing
 
-Tests are configured but the current doctest example may not work properly with `cargo test`. The CI runs `just check` which includes `cargo test --workspace`.
+Tests are configured but the current doctest example may not work properly with
+`cargo test`. The CI runs `just check` which includes `cargo test --workspace`.

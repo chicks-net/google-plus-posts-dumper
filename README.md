@@ -7,8 +7,8 @@
 
 ## Motivation
 
-* I wanted to do something in rust since it has a reputation for being hard.
-* I had a pile of HTML from my google+ to convert to hugo-friendly Markdown.
+- I wanted to do something in rust since it has a reputation for being hard.
+- I had a pile of HTML from my google+ to convert to hugo-friendly Markdown.
 
 ## Status
 
@@ -53,15 +53,15 @@ stanza which processes the `examples/` directory and outputs to `test_output/`.
 
 The project includes:
 
-* `examples/` - Sample Google+ HTML files for testing the parser
-* `test_output/` - Generated Markdown files (gitignored)
+- `examples/` - Sample Google+ HTML files for testing the parser
+- `test_output/` - Generated Markdown files (gitignored)
 
 Other named recipes are:
 
-* `check` - run rust linters locally
-* `newdep crate_name` - add a new create dependancy
-* `sync` - get out of a branch after merging
-* `backtrace` - run with detailed error traces
+- `check` - run rust linters locally
+- `newdep crate_name` - add a new create dependancy
+- `sync` - get out of a branch after merging
+- `backtrace` - run with detailed error traces
 
 So `just check` would rerun the linters for you.
 
