@@ -643,3 +643,217 @@ fn find_parent_href(handle: &Handle) -> Option<String> {
 
     search_parents(handle)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests for escape_toml_string()
+    #[test]
+    fn test_escape_toml_string_simple() {
+        assert_eq!(escape_toml_string("hello world"), "hello world");
+    }
+
+    #[test]
+    fn test_escape_toml_string_empty() {
+        assert_eq!(escape_toml_string(""), "");
+    }
+
+    #[test]
+    fn test_escape_toml_string_quotes() {
+        assert_eq!(
+            escape_toml_string("He said \"hello\""),
+            "He said \\\"hello\\\""
+        );
+    }
+
+    #[test]
+    fn test_escape_toml_string_backslashes() {
+        assert_eq!(
+            escape_toml_string("C:\\Users\\path"),
+            "C:\\\\Users\\\\path"
+        );
+    }
+
+    #[test]
+    fn test_escape_toml_string_mixed() {
+        assert_eq!(
+            escape_toml_string("\"quote\\\" and \\backslash"),
+            "\\\"quote\\\\\\\" and \\\\backslash"
+        );
+    }
+
+    #[test]
+    fn test_escape_toml_string_unicode() {
+        assert_eq!(escape_toml_string("Hello 👋 世界"), "Hello 👋 世界");
+    }
+
+    #[test]
+    fn test_escape_toml_string_only_quotes() {
+        assert_eq!(escape_toml_string("\"\"\""), "\\\"\\\"\\\"");
+    }
+
+    #[test]
+    fn test_escape_toml_string_only_backslashes() {
+        assert_eq!(escape_toml_string("\\\\\\"), "\\\\\\\\\\\\");
+    }
+
+    // Tests for convert_to_utc()
+    #[test]
+    fn test_convert_to_utc_negative_offset() {
+        assert_eq!(
+            convert_to_utc("2011-08-14 20:39:28-0700"),
+            "2011-08-15T03:39:28Z"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_positive_offset() {
+        assert_eq!(
+            convert_to_utc("2024-01-15 14:30:00+0530"),
+            "2024-01-15T09:00:00Z"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_zero_offset() {
+        assert_eq!(
+            convert_to_utc("2024-06-15 12:00:00+0000"),
+            "2024-06-15T12:00:00Z"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_midnight_boundary() {
+        // 11:30 PM PST becomes 7:30 AM UTC next day
+        assert_eq!(
+            convert_to_utc("2024-01-15 23:30:00-0800"),
+            "2024-01-16T07:30:00Z"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_date_boundary_backward() {
+        // 2 AM IST becomes previous day in UTC
+        assert_eq!(
+            convert_to_utc("2024-01-16 02:00:00+0530"),
+            "2024-01-15T20:30:00Z"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_invalid_format() {
+        // Should return original string on parse error
+        assert_eq!(
+            convert_to_utc("not a date"),
+            "not a date"
+        );
+    }
+
+    #[test]
+    fn test_convert_to_utc_empty_string() {
+        assert_eq!(convert_to_utc(""), "");
+    }
+
+    #[test]
+    fn test_convert_to_utc_wrong_format() {
+        // ISO format instead of expected format
+        assert_eq!(
+            convert_to_utc("2024-01-15T14:30:00Z"),
+            "2024-01-15T14:30:00Z"
+        );
+    }
+
+    // Tests for format_filename_date()
+    #[test]
+    fn test_format_filename_date_standard() {
+        assert_eq!(
+            format_filename_date("20110814 - Today is my first day"),
+            "2011-08-14-Today_is_my_first_day"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_no_separator() {
+        // Function always adds dash after date
+        assert_eq!(
+            format_filename_date("20110814Today"),
+            "2011-08-14-Today"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_multiple_spaces() {
+        assert_eq!(
+            format_filename_date("20110814 - Multiple Word Title Here"),
+            "2011-08-14-Multiple_Word_Title_Here"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_just_date() {
+        assert_eq!(
+            format_filename_date("20110814"),
+            "2011-08-14-"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_non_date() {
+        assert_eq!(
+            format_filename_date("random file name"),
+            "random_file_name"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_short_filename() {
+        assert_eq!(
+            format_filename_date("short"),
+            "short"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_partial_date() {
+        // 7 digits, not 8 - should not be treated as date
+        assert_eq!(
+            format_filename_date("2011081 - test"),
+            "2011081_-_test"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_with_extension() {
+        // This tests just the stem, but good to verify
+        assert_eq!(
+            format_filename_date("20110814 - Post Title"),
+            "2011-08-14-Post_Title"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_no_dash_separator() {
+        // Has date but no " - " separator (just space), so space becomes underscore
+        assert_eq!(
+            format_filename_date("20110814 Post Title"),
+            "2011-08-14-_Post_Title"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_empty() {
+        assert_eq!(
+            format_filename_date(""),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_special_chars() {
+        assert_eq!(
+            format_filename_date("20110814 - Post with (parentheses) & stuff"),
+            "2011-08-14-Post_with_(parentheses)_&_stuff"
+        );
+    }
+}
