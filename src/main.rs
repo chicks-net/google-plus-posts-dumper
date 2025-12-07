@@ -157,10 +157,9 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
         let tag_name = name.local.as_ref();
 
         // Extract author from header
-        if tag_name == "a" && has_class(&attrs, "author") {
-            if post_data.author.is_empty() {
-                post_data.author = get_text_content(handle);
-            }
+        if tag_name == "a" && has_class(&attrs, "author")
+            && post_data.author.is_empty() {
+            post_data.author = get_text_content(handle);
         }
 
         // Extract date/time from post header (not comments)
