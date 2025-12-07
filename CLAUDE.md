@@ -4,93 +4,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Rust command-line tool that parses HTML files from Google+ data dumps and converts them to Hugo-friendly Markdown. The project is in development and currently stops with a panic after parsing HTML structure.
+A Rust command-line tool that parses Google+ Takeout HTML files and converts them to Hugo-friendly Markdown with full post content, metadata, comments, and social activity.
 
 ## Architecture
 
-- **Single-file application**: `src/main.rs` contains all functionality
-- **HTML parsing**: Uses `html5ever` and `markup5ever_rcdom` for DOM parsing
-- **File handling**: Uses `glob` crate for pattern matching HTML files
-- **Structure**:
-  - `main()`: Argument parsing, directory validation, file discovery
-  - `assert_dir()`: Directory existence validation
-  - `process_file()`: HTML parsing and processing (incomplete)
-  - `walk()`: Recursive DOM traversal for debugging
+**Single-file monolith**: All functionality lives in `src/main.rs` (~650 lines)
+
+**Data flow**:
+
+1. `main()` - CLI argument parsing, directory validation, HTML file discovery via `glob`
+2. `process_file()` - Per-file orchestration: parse HTML → extract data → generate Markdown → write file
+3. `extract_post_data()` / `find_post_elements()` - Recursive DOM traversal extracting structured data into `PostData`
+4. `generate_markdown()` - Convert `PostData` to Hugo-compatible Markdown with TOML frontmatter
+
+**Key structures**:
+
+- `PostData` - Complete post representation: author, date, content, reshares, location, media, comments, +1s
+- `Comment` - Comment thread data with author/date/content
+
+**HTML parsing**: Uses `html5ever` + `markup5ever_rcdom` for DOM traversal with CSS class-based element identification
+
+**Domain logic**:
+
+- `convert_to_utc()` - Parse Google+ timestamps (`YYYY-MM-DD HH:MM:SS±HHMM`) to ISO 8601 UTC
+- `format_filename_date()` - Transform `20110814 - Title.html` to `2011-08-14-Title.md`
+- `escape_toml_string()` - Quote/backslash escaping for TOML frontmatter
+- Helper functions for DOM queries: `has_class()`, `get_attr_value()`, `get_text_content()`, etc.
 
 ## Development Commands
 
-### Build and Test
+**Build/test/lint**:
 
 ```bash
-# Run linting and tests
-just check
-# Equivalent to:
-cargo clippy
-cargo test --workspace
+just check          # Run all checks (cargo check + clippy + test)
+cargo clippy        # Linting only
+cargo test          # Tests only (currently has doctest issues)
 ```
 
-### Running the Application
+**Running**:
 
 ```bash
-# Default run with hardcoded paths
-just
-
-# Run with custom source and destination
-cargo run -- <google_plus_dump_dir> <markdown_dest_dir>
-
-# Run with backtrace enabled
-just backtrace
+just                # Default: process examples/ → test_output/
+just try            # Same as above
+just backtrace      # Run with RUST_BACKTRACE=1
+cargo run -- <source_dir> <dest_dir>  # Custom paths
 ```
 
-### Development Workflow
+**Dependencies**:
 
 ```bash
-# Add new dependency
-just newdep <crate_name>
-
-# Return to clean main branch
-just sync
-
-# Create PR from current branch
-just pr
-
-# Merge PR and return to main
-just merge
+just newdep <crate_name>  # Add dependency + regenerate docs
 ```
 
-## Expected Directory Structure
+**Git/GitHub workflow** (via `.just/gh-process.just`):
 
-The tool supports two input structures:
+```bash
+just branch <name>  # Create new branch with user/$DATE-name format
+just pr             # Push + create PR with auto-generated description
+just pr_checks      # Watch CI + check for Copilot/Claude suggestions
+just pr_update      # Update PR description's "Done" section with current commits
+just merge          # Squash-merge PR, delete branch, return to main
+just sync           # Return to main + pull latest
+```
 
-- **Google+ Takeout**: Directory containing `Google+ Stream/Posts/*.html`
-- **Direct HTML directory**: Any directory containing `.html` files (like the `examples/` directory)
-- **Output**: Destination directory for generated Markdown files
+## Input/Output Structure
 
-## Generated Markdown Structure
+**Input** (two supported formats):
 
-Each converted post includes:
+1. Google+ Takeout: `<dump_dir>/Google+ Stream/Posts/*.html`
+2. Direct HTML: `<any_dir>/*.html` (e.g., `examples/`)
 
-- **Metadata**: Author, date, location, sharing visibility
-- **Main content**: Post text with preserved formatting
-- **Media sections**: Images, videos, embedded links
-- **Social activity**: +1s from other users
-- **Comments**: Full comment threads with authors and timestamps
+**Output**: `<dest_dir>/<YYYY-MM-DD-filename>.md`
 
-## Current State
+**Generated Markdown includes**:
 
-- ✅ Command-line argument parsing
-- ✅ Directory validation
-- ✅ HTML file discovery via glob patterns
-- ✅ HTML parsing with `html5ever`
-- ✅ Structured data extraction from Google+ posts
-- ✅ Markdown generation with full post content
-- ✅ Support for multiple post types (text, images, videos, links, location)
-- ✅ Comment parsing and formatting
-- ✅ Social activity parsing (+1s, visibility)
+- TOML frontmatter (title, date, description, tags, cover settings)
+- Metadata line (author, location, visibility)
+- Main post content with preserved formatting
+- Reshared content attribution
+- Media sections (images, videos, links)
+- Social activity (+1s)
+- Full comment threads
 
-The application now successfully converts Google+ HTML files to structured Markdown files.
+## CI/CD
 
-## Testing
+GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs and main branch pushes across macOS (14 + latest), Windows, Ubuntu with `RUSTFLAGS=--deny warnings`.
 
-Tests are configured but the current doctest example may not work properly with
-`cargo test`. The CI runs `just check` which includes `cargo test --workspace`.
+## Current Limitations
+
+- Doctest in `src/main.rs` doesn't execute with `cargo test` (known issue, documented in code)
+- No unit tests yet - relies on integration testing via `examples/` directory

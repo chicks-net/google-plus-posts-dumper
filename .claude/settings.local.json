@@ -3,7 +3,8 @@
     "allow": [
       "Bash(just check)",
       "Bash(grep:*)",
-      "Bash(just try:*)"
+      "Bash(just try:*)",
+      "Bash(cargo build:*)"
     ],
     "deny": [],
     "ask": []
