@@ -22,5 +22,5 @@ jobs:
       with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           assignees: chicks-net
-          numOfAssignee: 1
+          numOfAssignees: 1
           allowSelfAssign: true
