@@ -12,9 +12,8 @@
 
 ## Status
 
-It processes command line arguments and verifies that the directories are
-there and laid out as expected.  Then it finds the HTML files in the first
-directory.
+It does everything I have imagined it wanting to do.  I'm working on verifying
+the output with hugo.
 
 ## Disclaimer and eating my words
 
