@@ -61,6 +61,7 @@ just merge
 ## Expected Directory Structure
 
 The tool supports two input structures:
+
 - **Google+ Takeout**: Directory containing `Google+ Stream/Posts/*.html`
 - **Direct HTML directory**: Any directory containing `.html` files (like the `examples/` directory)
 - **Output**: Destination directory for generated Markdown files
@@ -68,6 +69,7 @@ The tool supports two input structures:
 ## Generated Markdown Structure
 
 Each converted post includes:
+
 - **Metadata**: Author, date, location, sharing visibility
 - **Main content**: Post text with preserved formatting
 - **Media sections**: Images, videos, embedded links
