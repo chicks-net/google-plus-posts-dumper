@@ -105,7 +105,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
         .unwrap_or_else(|| panic!("Failed to extract filename stem from: {}", file_name))
         .to_str()
         .unwrap_or_else(|| panic!("Filename contains invalid UTF-8: {}", file_name));
-    let output_filename = format!("{}.md", input_filename);
+    let output_filename = format!("{}.md", format_filename_date(input_filename));
     let output_path = Path::new(dest_dir).join(output_filename);
 
     // Write markdown file
@@ -513,6 +513,22 @@ fn convert_to_utc(datetime_str: &str) -> String {
             // If parsing fails, return original string
             datetime_str.to_string()
         }
+    }
+}
+
+/// Format filename date from YYYYMMDD to YYYY-MM-DD
+/// Input: "20110814 - Today is my first day..." or any other filename
+/// Output: "2011-08-14 - Today is my first day..." or original if not matching pattern
+fn format_filename_date(filename: &str) -> String {
+    // Check if filename starts with 8 digits
+    if filename.len() >= 8 && filename.chars().take(8).all(|c| c.is_ascii_digit()) {
+        let year = &filename[0..4];
+        let month = &filename[4..6];
+        let day = &filename[6..8];
+        let rest = &filename[8..];
+        format!("{}-{}-{}{}", year, month, day, rest)
+    } else {
+        filename.to_string()
     }
 }
 
