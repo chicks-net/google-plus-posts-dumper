@@ -18,9 +18,11 @@ backtrace:
 
 # what have you broken?
 check:
+  cargo fmt --check
   cargo check
   cargo clippy
   cargo test --workspace
+  cargo audit
 
 # add a crate dependancy
 newdep crate_name:
