@@ -530,8 +530,11 @@ fn generate_markdown(post_data: &PostData) -> String {
 // Helper functions
 
 /// Escape double quotes and backslashes for TOML basic string values
+/// Also replaces newlines with spaces to ensure single-line TOML strings
 fn escape_toml_string(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace(['\n', '\r'], " ")
 }
 
 /// Convert Google+ datetime string to UTC
@@ -735,6 +738,30 @@ mod tests {
     #[test]
     fn test_escape_toml_string_only_backslashes() {
         assert_eq!(escape_toml_string("\\\\\\"), "\\\\\\\\\\\\");
+    }
+
+    #[test]
+    fn test_escape_toml_string_newlines() {
+        assert_eq!(
+            escape_toml_string("Line one\nLine two\nLine three"),
+            "Line one Line two Line three"
+        );
+    }
+
+    #[test]
+    fn test_escape_toml_string_mixed_newlines() {
+        assert_eq!(
+            escape_toml_string("He said \"hello\"\nAnd then left"),
+            "He said \\\"hello\\\" And then left"
+        );
+    }
+
+    #[test]
+    fn test_escape_toml_string_carriage_return() {
+        assert_eq!(
+            escape_toml_string("Windows\r\nStyle\r\nNewlines"),
+            "Windows  Style  Newlines"
+        );
     }
 
     // Tests for convert_to_utc()
