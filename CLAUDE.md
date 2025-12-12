@@ -94,6 +94,7 @@ GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs an
 ## Testing
 
 **Unit tests**: Located in `src/main.rs:725` in a `#[cfg(test)]` module with ~55 tests covering:
+
 - `escape_toml_string()` - TOML string escaping and newline handling
 - `convert_to_utc()` - Timestamp parsing and timezone conversion
 - `format_filename_date()` - Filename transformation from Google+ format to Hugo format
