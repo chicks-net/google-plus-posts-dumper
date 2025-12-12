@@ -436,6 +436,12 @@ fn generate_markdown(post_data: &PostData) -> String {
     markdown.push_str("cover.hidden = true\n");
 
     // Optional metadata as comments
+    if !post_data.author.is_empty() {
+        markdown.push_str(&format!(
+            "# author = \"{}\"\n",
+            escape_toml_string(&post_data.author)
+        ));
+    }
     markdown.push_str("# keywords = [\"google-plus\", \"archive\"]\n");
     markdown.push_str("# tags = [\"google-plus\"");
     if !post_data.visibility.is_empty() {
@@ -454,9 +460,6 @@ fn generate_markdown(post_data: &PostData) -> String {
 
     // Post metadata section
     let mut metadata_parts = Vec::new();
-    if !post_data.author.is_empty() {
-        metadata_parts.push(format!("**Author:** {}", post_data.author));
-    }
     if let Some(location) = &post_data.location {
         metadata_parts.push(format!("**Location:** {}", location));
     }
