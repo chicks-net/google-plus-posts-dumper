@@ -36,9 +36,10 @@ A Rust command-line tool that parses Google+ Takeout HTML files and converts the
 **Build/test/lint**:
 
 ```bash
-just check          # Run all checks (cargo check + clippy + test)
+just check          # Run all checks (cargo fmt --check + cargo check + clippy + test + audit)
 cargo clippy        # Linting only
 cargo test          # Tests only (currently has doctest issues)
+cargo audit         # Security audit of dependencies
 ```
 
 **Running**:
@@ -88,9 +89,18 @@ just sync           # Return to main + pull latest
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs and main branch pushes across macOS (14 + latest), Windows, Ubuntu with `RUSTFLAGS=--deny warnings`.
+GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs and main branch pushes across macOS (14 + latest), Windows, Ubuntu with `RUSTFLAGS=--deny warnings`. CI includes `cargo-audit` for dependency security scanning.
+
+## Testing
+
+**Unit tests**: Located in `src/main.rs:725` in a `#[cfg(test)]` module with ~55 tests covering:
+- `escape_toml_string()` - TOML string escaping and newline handling
+- `convert_to_utc()` - Timestamp parsing and timezone conversion
+- `format_filename_date()` - Filename transformation from Google+ format to Hugo format
+- `clean_title()` - HTML entity decoding and tag stripping
+
+**Integration tests**: The `examples/` directory contains sample Google+ HTML files used for manual testing with `just try`
 
 ## Current Limitations
 
-- Doctest in `src/main.rs` doesn't execute with `cargo test` (known issue, documented in code)
-- No unit tests yet - relies on integration testing via `examples/` directory
+- Doctest in `src/main.rs:10` doesn't execute with `cargo test` (known issue, documented in code)
