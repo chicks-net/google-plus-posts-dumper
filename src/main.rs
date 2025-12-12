@@ -29,6 +29,7 @@ use rcdom::{Handle, NodeData, RcDom};
 
 use chrono::{DateTime, Utc};
 use glob::glob;
+use html_escape::decode_html_entities;
 
 fn main() {
     // get directory argument and verify that it is actually a directory
@@ -395,7 +396,8 @@ fn generate_markdown(post_data: &PostData) -> String {
 
     // Title - use post title if available, otherwise use truncated content
     let title = if !post_data.title.is_empty() {
-        escape_toml_string(&post_data.title)
+        let cleaned = clean_title(&post_data.title);
+        escape_toml_string(&cleaned)
     } else if !post_data.content.is_empty() {
         let truncated = post_data.content.chars().take(50).collect::<String>();
         escape_toml_string(&format!("{}...", truncated.trim()))
@@ -535,6 +537,34 @@ fn escape_toml_string(s: &str) -> String {
     s.replace('\\', "\\\\")
         .replace('"', "\\\"")
         .replace(['\n', '\r'], " ")
+}
+
+/// Clean up title text by decoding HTML entities and stripping HTML tags
+/// This handles double-encoded entities from Google+ Takeout HTML
+fn clean_title(title: &str) -> String {
+    // Decode HTML entities (this handles &#39;, &quot;, &amp;, etc.)
+    let decoded = decode_html_entities(title).to_string();
+
+    // Strip HTML tags using a simple regex-like approach
+    // This handles cases like <br>, <br/>, <b>, etc.
+    let mut result = String::new();
+    let mut in_tag = false;
+
+    for c in decoded.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => {
+                in_tag = false;
+                // Add a space where tags were to avoid word concatenation
+                result.push(' ');
+            }
+            _ if !in_tag => result.push(c),
+            _ => {} // Skip characters inside tags
+        }
+    }
+
+    // Clean up multiple spaces and trim
+    result.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Convert Google+ datetime string to UTC
@@ -900,5 +930,147 @@ mod tests {
             format_filename_date("20110814 - Post with (parentheses) & stuff"),
             "2011-08-14-Post_with_(parentheses)_&_stuff"
         );
+    }
+
+    // Tests for clean_title()
+    #[test]
+    fn test_clean_title_simple() {
+        assert_eq!(clean_title("Hello World"), "Hello World");
+    }
+
+    #[test]
+    fn test_clean_title_empty() {
+        assert_eq!(clean_title(""), "");
+    }
+
+    #[test]
+    fn test_clean_title_apostrophe_entity() {
+        assert_eq!(clean_title("What&#39;d you say"), "What'd you say");
+    }
+
+    #[test]
+    fn test_clean_title_quote_entity() {
+        assert_eq!(clean_title("&quot;Hello World&quot;"), "\"Hello World\"");
+    }
+
+    #[test]
+    fn test_clean_title_ampersand_entity() {
+        assert_eq!(clean_title("Penn &amp; Teller"), "Penn & Teller");
+    }
+
+    #[test]
+    fn test_clean_title_less_than_greater_than() {
+        // When &lt;tag&gt; is decoded, it becomes <tag> which is then stripped
+        // This is correct behavior - encoded HTML tags should be removed
+        assert_eq!(clean_title("&lt;tag&gt;"), "");
+    }
+
+    #[test]
+    fn test_clean_title_encoded_text_with_angle_brackets() {
+        // To preserve <tag> as text, it needs to be double-encoded
+        // But in practice, Google+ doesn't do this, so we strip tags
+        assert_eq!(clean_title("Code example: &lt;div&gt;"), "Code example:");
+    }
+
+    #[test]
+    fn test_clean_title_br_tag() {
+        assert_eq!(clean_title("Line one<br>Line two"), "Line one Line two");
+    }
+
+    #[test]
+    fn test_clean_title_br_self_closing() {
+        assert_eq!(clean_title("Line one<br/>Line two"), "Line one Line two");
+    }
+
+    #[test]
+    fn test_clean_title_multiple_br_tags() {
+        assert_eq!(clean_title("Line one<br><br>Line two"), "Line one Line two");
+    }
+
+    #[test]
+    fn test_clean_title_bold_tag() {
+        assert_eq!(clean_title("This is <b>bold</b> text"), "This is bold text");
+    }
+
+    #[test]
+    fn test_clean_title_mixed_entities_and_tags() {
+        assert_eq!(
+            clean_title("What&#39;d you say again?<br><br>This is fabulous"),
+            "What'd you say again? This is fabulous"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_real_world_example_1() {
+        // From the actual Google+ export
+        assert_eq!(
+            clean_title("Scott&#39;s brother Greg and his girl friend"),
+            "Scott's brother Greg and his girl friend"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_real_world_example_2() {
+        // From the actual Google+ export
+        assert_eq!(
+            clean_title("Penn &amp; Teller rock!"),
+            "Penn & Teller rock!"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_real_world_example_3() {
+        // From the actual Google+ export
+        assert_eq!(
+            clean_title("&quot;Lessons Learned Developing Software for Space Vehicles&quot;"),
+            "\"Lessons Learned Developing Software for Space Vehicles\""
+        );
+    }
+
+    #[test]
+    fn test_clean_title_multiple_spaces() {
+        // After tag removal, multiple spaces should be normalized
+        assert_eq!(clean_title("Hello<br>  <br>  World"), "Hello World");
+    }
+
+    #[test]
+    fn test_clean_title_nested_tags() {
+        assert_eq!(
+            clean_title("This is <b><i>nested</i></b> text"),
+            "This is nested text"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_tag_with_attributes() {
+        assert_eq!(
+            clean_title("Click <a href=\"http://example.com\">here</a>"),
+            "Click here"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_unicode() {
+        assert_eq!(clean_title("Hello 👋 世界"), "Hello 👋 世界");
+    }
+
+    #[test]
+    fn test_clean_title_unicode_with_entities() {
+        assert_eq!(
+            clean_title("Hello 👋 世界&#39;s best"),
+            "Hello 👋 世界's best"
+        );
+    }
+
+    #[test]
+    fn test_clean_title_only_tags() {
+        assert_eq!(clean_title("<br><br><br>"), "");
+    }
+
+    #[test]
+    fn test_clean_title_truncated_entity() {
+        // Handle case where HTML title was truncated mid-entity
+        // The library should handle this gracefully
+        assert_eq!(clean_title("Test&#3"), "Test&#3");
     }
 }
