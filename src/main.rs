@@ -29,6 +29,7 @@ use rcdom::{Handle, NodeData, RcDom};
 
 use chrono::{DateTime, Utc};
 use glob::glob;
+use html_escape::decode_html_entities;
 
 fn main() {
     // get directory argument and verify that it is actually a directory
@@ -395,7 +396,8 @@ fn generate_markdown(post_data: &PostData) -> String {
 
     // Title - use post title if available, otherwise use truncated content
     let title = if !post_data.title.is_empty() {
-        escape_toml_string(&post_data.title)
+        let cleaned = clean_title(&post_data.title);
+        escape_toml_string(&cleaned)
     } else if !post_data.content.is_empty() {
         let truncated = post_data.content.chars().take(50).collect::<String>();
         escape_toml_string(&format!("{}...", truncated.trim()))
@@ -535,6 +537,34 @@ fn escape_toml_string(s: &str) -> String {
     s.replace('\\', "\\\\")
         .replace('"', "\\\"")
         .replace(['\n', '\r'], " ")
+}
+
+/// Clean up title text by decoding HTML entities and stripping HTML tags
+/// This handles double-encoded entities from Google+ Takeout HTML
+fn clean_title(title: &str) -> String {
+    // Decode HTML entities (this handles &#39;, &quot;, &amp;, etc.)
+    let decoded = decode_html_entities(title).to_string();
+
+    // Strip HTML tags using a simple regex-like approach
+    // This handles cases like <br>, <br/>, <b>, etc.
+    let mut result = String::new();
+    let mut in_tag = false;
+
+    for c in decoded.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => {
+                in_tag = false;
+                // Add a space where tags were to avoid word concatenation
+                result.push(' ');
+            }
+            _ if !in_tag => result.push(c),
+            _ => {} // Skip characters inside tags
+        }
+    }
+
+    // Clean up multiple spaces and trim
+    result.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Convert Google+ datetime string to UTC
