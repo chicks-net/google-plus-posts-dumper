@@ -124,6 +124,7 @@ fn process_file(file_name: &str, dest_dir: &str) {
 struct PostData {
     author: String,
     date: String,
+    canonical_url: String,
     title: String,
     content: String,
     reshare_author: Option<String>,
@@ -172,7 +173,7 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
             post_data.author = get_text_content(handle);
         }
 
-        // Extract date/time from post header (not comments)
+        // Extract date/time and canonical URL from post header (not comments)
         // Post dates are in <a> tags that link to /posts/
         if tag_name == "a" && post_data.date.is_empty() {
             if let Some(href) = get_attr_value(&attrs, "href") {
@@ -180,6 +181,7 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
                     let date_text = get_text_content(handle);
                     if !date_text.is_empty() {
                         post_data.date = convert_to_utc(&date_text);
+                        post_data.canonical_url = href.clone();
                     }
                 }
             }
@@ -428,9 +430,17 @@ fn generate_markdown(post_data: &PostData) -> String {
     };
     markdown.push_str(&format!("# description = \"{}\"\n", description));
 
-    // Canonical URL - leave empty for now
-    markdown.push_str("canonicalURL = \"\"\n");
-    markdown.push_str("ShowCanonicalLink = false\n");
+    // Canonical URL - original Google+ post URL
+    if !post_data.canonical_url.is_empty() {
+        markdown.push_str(&format!(
+            "canonicalURL = \"{}\"\n",
+            escape_toml_string(&post_data.canonical_url)
+        ));
+        markdown.push_str("ShowCanonicalLink = true\n");
+    } else {
+        markdown.push_str("canonicalURL = \"\"\n");
+        markdown.push_str("ShowCanonicalLink = false\n");
+    }
 
     // Cover image settings
     markdown.push_str("# cover.image = \"/posts/\"\n");
