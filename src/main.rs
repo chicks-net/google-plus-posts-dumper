@@ -463,9 +463,6 @@ fn generate_markdown(post_data: &PostData) -> String {
     if let Some(location) = &post_data.location {
         metadata_parts.push(format!("**Location:** {}", location));
     }
-    if !post_data.visibility.is_empty() {
-        metadata_parts.push(format!("**Shared with:** {}", post_data.visibility));
-    }
     if !metadata_parts.is_empty() {
         markdown.push_str(&metadata_parts.join(" | "));
         markdown.push_str("\n\n---\n\n");
@@ -507,6 +504,11 @@ fn generate_markdown(post_data: &PostData) -> String {
             markdown.push_str(&format!("- [{}]({})\n", link_text, url));
         }
         markdown.push('\n');
+    }
+
+    // Add shared with
+    if !post_data.visibility.is_empty() {
+        markdown.push_str(&format!("**Shared with:** {}\n\n", post_data.visibility));
     }
 
     // Add +1s
