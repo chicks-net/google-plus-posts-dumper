@@ -200,7 +200,8 @@ fn find_post_elements(handle: &Handle, post_data: &mut PostData) {
 
         // Extract location information
         if has_class(&attrs, "location") {
-            post_data.location = Some(get_text_content(handle));
+            let location_text = get_text_content(handle);
+            post_data.location = Some(clean_location(&location_text));
         }
 
         // Extract images from albums or media links
@@ -570,6 +571,25 @@ fn clean_title(title: &str) -> String {
 
     // Clean up multiple spaces and trim
     result.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Clean up location text to ensure proper spacing before "Address"
+/// Google+ sometimes concatenates location data without proper spacing
+fn clean_location(location: &str) -> String {
+    // Ensure there's a space before "Address" if it's not already there
+    let mut result = location.to_string();
+
+    // Check for "Address" without a preceding space
+    if let Some(pos) = result.find("Address") {
+        if pos > 0 {
+            let before = &result[..pos];
+            if !before.ends_with(|c: char| c.is_whitespace()) {
+                result.insert(pos, ' ');
+            }
+        }
+    }
+
+    result
 }
 
 /// Convert Google+ datetime string to UTC
@@ -1077,5 +1097,49 @@ mod tests {
         // Handle case where HTML title was truncated mid-entity
         // The library should handle this gracefully
         assert_eq!(clean_title("Test&#3"), "Test&#3");
+    }
+
+    // Tests for clean_location()
+    #[test]
+    fn test_clean_location_with_missing_space() {
+        assert_eq!(
+            clean_location("123 Main StreetAddress: City, State"),
+            "123 Main Street Address: City, State"
+        );
+    }
+
+    #[test]
+    fn test_clean_location_with_proper_space() {
+        assert_eq!(
+            clean_location("123 Main Street Address: City, State"),
+            "123 Main Street Address: City, State"
+        );
+    }
+
+    #[test]
+    fn test_clean_location_no_address() {
+        assert_eq!(clean_location("New York, NY"), "New York, NY");
+    }
+
+    #[test]
+    fn test_clean_location_empty() {
+        assert_eq!(clean_location(""), "");
+    }
+
+    #[test]
+    fn test_clean_location_address_at_start() {
+        assert_eq!(
+            clean_location("Address: 123 Main Street"),
+            "Address: 123 Main Street"
+        );
+    }
+
+    #[test]
+    fn test_clean_location_multiple_occurrences() {
+        // Only fixes the first occurrence
+        assert_eq!(
+            clean_location("HomeAddress: 123, WorkAddress: 456"),
+            "Home Address: 123, WorkAddress: 456"
+        );
     }
 }
