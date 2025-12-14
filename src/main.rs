@@ -426,7 +426,7 @@ fn generate_markdown(post_data: &PostData) -> String {
     } else {
         String::from("")
     };
-    markdown.push_str(&format!("description = \"{}\"\n", description));
+    markdown.push_str(&format!("# description = \"{}\"\n", description));
 
     // Canonical URL - leave empty for now
     markdown.push_str("canonicalURL = \"\"\n");
