@@ -454,17 +454,7 @@ fn generate_markdown(post_data: &PostData) -> String {
         ));
     }
     markdown.push_str("# keywords = [\"google-plus\", \"archive\"]\n");
-    markdown.push_str("# tags = [\"google-plus\"");
-    if !post_data.visibility.is_empty() {
-        markdown.push_str(&format!(
-            ", \"{}\"",
-            escape_toml_string(&post_data.visibility.to_lowercase())
-        ));
-    }
-    if post_data.location.is_some() {
-        markdown.push_str(", \"location\"");
-    }
-    markdown.push_str("]\n");
+    markdown.push_str("tags = [\"google-plus\"]\n");
 
     markdown.push_str("# ShowToc = false\n");
     markdown.push_str("+++\n\n");
