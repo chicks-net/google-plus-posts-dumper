@@ -44,7 +44,7 @@ count_posts output_dir='test_output':
   fi
   echo "Post count by month in {{output_dir}}:"
   echo "======================================"
-  find "{{output_dir}}" -name "*.md" -maxdepth 1 2>/dev/null | \
+  find "{{output_dir}}" -maxdepth 1 -name "*.md" 2>/dev/null | \
     sed 's|.*/||' | \
     grep -E '^[0-9]{4}-[0-9]{2}-' | \
     cut -d'-' -f1,2 | \
