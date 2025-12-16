@@ -617,6 +617,7 @@ fn convert_to_utc(datetime_str: &str) -> String {
 /// - Converts YYYYMMDD to YYYY-MM-DD
 /// - Replaces " - " with "-"
 /// - Replaces remaining spaces with underscores
+/// - Removes @, !, and # symbols
 fn format_filename_date(filename: &str) -> String {
     // Check if filename starts with 8 digits
     if filename.len() >= 8 && filename.chars().take(8).all(|c| c.is_ascii_digit()) {
@@ -625,13 +626,18 @@ fn format_filename_date(filename: &str) -> String {
         let day = &filename[6..8];
         let rest = &filename[8..];
 
-        // Replace " - " with "-" and then replace all spaces with underscores
-        let rest_formatted = rest.trim_start_matches(" - ").replace(' ', "_");
+        // Replace " - " with "-", replace spaces with underscores, and remove @, !, #, &, (, )
+        let rest_formatted = rest
+            .trim_start_matches(" - ")
+            .replace(' ', "_")
+            .replace(['@', '!', '#', '&', '(', ')'], "");
 
         format!("{}-{}-{}-{}", year, month, day, rest_formatted)
     } else {
-        // For non-date filenames, just replace spaces with underscores
-        filename.replace(' ', "_")
+        // For non-date filenames, replace spaces with underscores and remove @, !, #, &, (, )
+        filename
+            .replace(' ', "_")
+            .replace(['@', '!', '#', '&', '(', ')'], "")
     }
 }
 
@@ -953,7 +959,47 @@ mod tests {
     fn test_format_filename_date_special_chars() {
         assert_eq!(
             format_filename_date("20110814 - Post with (parentheses) & stuff"),
-            "2011-08-14-Post_with_(parentheses)_&_stuff"
+            "2011-08-14-Post_with_parentheses__stuff"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_removes_at_symbol() {
+        assert_eq!(
+            format_filename_date("20110814 - Email @someone about this"),
+            "2011-08-14-Email_someone_about_this"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_removes_exclamation() {
+        assert_eq!(
+            format_filename_date("20110814 - Wow! This is cool!"),
+            "2011-08-14-Wow_This_is_cool"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_removes_hash() {
+        assert_eq!(
+            format_filename_date("20110814 - Post about #hashtags and #coding"),
+            "2011-08-14-Post_about_hashtags_and_coding"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_removes_all_symbols() {
+        assert_eq!(
+            format_filename_date("20110814 - Wow! Email @user about #topic"),
+            "2011-08-14-Wow_Email_user_about_topic"
+        );
+    }
+
+    #[test]
+    fn test_format_filename_date_removes_symbols_non_date() {
+        assert_eq!(
+            format_filename_date("My post @home about #things!"),
+            "My_post_home_about_things"
         );
     }
 
