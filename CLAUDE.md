@@ -42,6 +42,8 @@ cargo test          # Tests only (currently has doctest issues)
 cargo audit         # Security audit of dependencies
 ```
 
+Claude should run "just check" instead of "cargo test".
+
 **Running**:
 
 ```bash
