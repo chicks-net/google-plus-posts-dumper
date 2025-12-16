@@ -6,7 +6,8 @@
       "Bash(just claude_review)",
       "Bash(just try:*)",
       "Bash(cargo build:*)",
-      "Bash(cargo fmt:*)"
+      "Bash(cargo fmt:*)",
+      "Bash(markdownlint-cli2:*)"
     ],
     "deny": [],
     "ask": []
