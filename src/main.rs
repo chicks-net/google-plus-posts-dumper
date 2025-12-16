@@ -626,16 +626,18 @@ fn format_filename_date(filename: &str) -> String {
         let day = &filename[6..8];
         let rest = &filename[8..];
 
-        // Replace " - " with "-", replace spaces with underscores, and remove @, !, #
+        // Replace " - " with "-", replace spaces with underscores, and remove @, !, #, &, (, )
         let rest_formatted = rest
             .trim_start_matches(" - ")
             .replace(' ', "_")
-            .replace(['@', '!', '#'], "");
+            .replace(['@', '!', '#', '&', '(', ')'], "");
 
         format!("{}-{}-{}-{}", year, month, day, rest_formatted)
     } else {
-        // For non-date filenames, replace spaces with underscores and remove @, !, #
-        filename.replace(' ', "_").replace(['@', '!', '#'], "")
+        // For non-date filenames, replace spaces with underscores and remove @, !, #, &, (, )
+        filename
+            .replace(' ', "_")
+            .replace(['@', '!', '#', '&', '(', ')'], "")
     }
 }
 
@@ -957,7 +959,7 @@ mod tests {
     fn test_format_filename_date_special_chars() {
         assert_eq!(
             format_filename_date("20110814 - Post with (parentheses) & stuff"),
-            "2011-08-14-Post_with_(parentheses)_&_stuff"
+            "2011-08-14-Post_with_parentheses__stuff"
         );
     }
 
