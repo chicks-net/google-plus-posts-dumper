@@ -299,7 +299,7 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
                 let date_text = date_text.trim_start_matches("- ").trim();
                 *date = convert_to_utc(date_text);
             } else if has_class(&attrs, "comment-content") && content.is_empty() {
-                *content = get_text_content(node);
+                *content = get_text_content_formatted(node);
             }
         }
 
@@ -368,6 +368,38 @@ fn extract_reshare_text(handle: &Handle) -> String {
                 // Handle br tags as newlines
                 if tag_name == "br" {
                     text.push('\n');
+                } else if tag_name == "a" {
+                    // Handle links within reshared content - convert to Markdown
+                    if let Some(href) = get_attr_value(&attrs, "href") {
+                        let link_text = get_text_content(node);
+                        // Add space before link if needed
+                        if !text.is_empty() && !text.ends_with(|c: char| c.is_whitespace()) {
+                            text.push(' ');
+                        }
+                        // If link text is the same as URL, use angle bracket syntax
+                        // Otherwise use full Markdown link syntax
+                        if link_text == href {
+                            text.push('<');
+                            text.push_str(&href);
+                            text.push('>');
+                        } else if !link_text.is_empty() {
+                            text.push('[');
+                            text.push_str(&link_text);
+                            text.push_str("](");
+                            text.push_str(&href);
+                            text.push(')');
+                        } else {
+                            // No link text, just use the URL in angle brackets
+                            text.push('<');
+                            text.push_str(&href);
+                            text.push('>');
+                        }
+                    } else {
+                        // No href attribute, just extract text
+                        for child in node.children.borrow().iter() {
+                            collect_reshare_text(child, text);
+                        }
+                    }
                 } else {
                     // Recurse into other elements
                     for child in node.children.borrow().iter() {
@@ -692,14 +724,46 @@ fn get_text_content_formatted(handle: &Handle) -> String {
             NodeData::Text { ref contents } => {
                 text.push_str(&contents.borrow());
             }
-            NodeData::Element { ref name, .. } => {
+            NodeData::Element {
+                ref name,
+                ref attrs,
+                ..
+            } => {
                 let tag_name = name.local.as_ref();
                 if tag_name == "br" {
                     text.push('\n');
                 } else if tag_name == "a" {
-                    // Handle links within content
-                    for child in node.children.borrow().iter() {
-                        collect_text_formatted(child, text);
+                    // Handle links within content - convert to Markdown
+                    let attrs = attrs.borrow();
+                    if let Some(href) = get_attr_value(&attrs, "href") {
+                        let link_text = get_text_content(node);
+                        // Add space before link if needed
+                        if !text.is_empty() && !text.ends_with(|c: char| c.is_whitespace()) {
+                            text.push(' ');
+                        }
+                        // If link text is the same as URL, use angle bracket syntax
+                        // Otherwise use full Markdown link syntax
+                        if link_text == href {
+                            text.push('<');
+                            text.push_str(&href);
+                            text.push('>');
+                        } else if !link_text.is_empty() {
+                            text.push('[');
+                            text.push_str(&link_text);
+                            text.push_str("](");
+                            text.push_str(&href);
+                            text.push(')');
+                        } else {
+                            // No link text, just use the URL in angle brackets
+                            text.push('<');
+                            text.push_str(&href);
+                            text.push('>');
+                        }
+                    } else {
+                        // No href attribute, just extract text
+                        for child in node.children.borrow().iter() {
+                            collect_text_formatted(child, text);
+                        }
                     }
                 } else {
                     for child in node.children.borrow().iter() {
