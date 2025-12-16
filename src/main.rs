@@ -299,7 +299,7 @@ fn extract_comment(handle: &Handle) -> Option<Comment> {
                 let date_text = date_text.trim_start_matches("- ").trim();
                 *date = convert_to_utc(date_text);
             } else if has_class(&attrs, "comment-content") && content.is_empty() {
-                *content = get_text_content(node);
+                *content = get_text_content_formatted(node);
             }
         }
 
@@ -368,6 +368,17 @@ fn extract_reshare_text(handle: &Handle) -> String {
                 // Handle br tags as newlines
                 if tag_name == "br" {
                     text.push('\n');
+                } else if tag_name == "a" {
+                    // Handle links within reshared content - convert to Markdown
+                    if let Some(href) = get_attr_value(&attrs, "href") {
+                        let link_text = get_text_content(node);
+                        format_markdown_link(text, &href, &link_text);
+                    } else {
+                        // No href attribute, just extract text
+                        for child in node.children.borrow().iter() {
+                            collect_reshare_text(child, text);
+                        }
+                    }
                 } else {
                     // Recurse into other elements
                     for child in node.children.borrow().iter() {
@@ -641,6 +652,35 @@ fn format_filename_date(filename: &str) -> String {
     }
 }
 
+/// Format a link as Markdown, adding spacing if needed
+/// - If link text equals URL, uses angle bracket syntax: <URL>
+/// - Otherwise uses full Markdown syntax: [text](URL)
+/// - Adds space before link if text buffer doesn't end with whitespace
+fn format_markdown_link(text: &mut String, href: &str, link_text: &str) {
+    // Add space before link if needed
+    if !text.is_empty() && !text.ends_with(|c: char| c.is_whitespace()) {
+        text.push(' ');
+    }
+    // If link text is the same as URL, use angle bracket syntax
+    // Otherwise use full Markdown link syntax
+    if link_text == href {
+        text.push('<');
+        text.push_str(href);
+        text.push('>');
+    } else if !link_text.is_empty() {
+        text.push('[');
+        text.push_str(link_text);
+        text.push_str("](");
+        text.push_str(href);
+        text.push(')');
+    } else {
+        // No link text, just use the URL in angle brackets
+        text.push('<');
+        text.push_str(href);
+        text.push('>');
+    }
+}
+
 fn has_class(attrs: &[markup5ever::interface::Attribute], class_name: &str) -> bool {
     attrs
         .iter()
@@ -692,14 +732,25 @@ fn get_text_content_formatted(handle: &Handle) -> String {
             NodeData::Text { ref contents } => {
                 text.push_str(&contents.borrow());
             }
-            NodeData::Element { ref name, .. } => {
+            NodeData::Element {
+                ref name,
+                ref attrs,
+                ..
+            } => {
                 let tag_name = name.local.as_ref();
                 if tag_name == "br" {
                     text.push('\n');
                 } else if tag_name == "a" {
-                    // Handle links within content
-                    for child in node.children.borrow().iter() {
-                        collect_text_formatted(child, text);
+                    // Handle links within content - convert to Markdown
+                    let attrs = attrs.borrow();
+                    if let Some(href) = get_attr_value(&attrs, "href") {
+                        let link_text = get_text_content(node);
+                        format_markdown_link(text, &href, &link_text);
+                    } else {
+                        // No href attribute, just extract text
+                        for child in node.children.borrow().iter() {
+                            collect_text_formatted(child, text);
+                        }
                     }
                 } else {
                     for child in node.children.borrow().iter() {
@@ -753,6 +804,63 @@ fn find_parent_href(handle: &Handle) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Tests for format_markdown_link()
+    #[test]
+    fn test_format_markdown_link_url_equals_text() {
+        let mut text = String::from("Check this out:");
+        format_markdown_link(&mut text, "http://example.com", "http://example.com");
+        assert_eq!(text, "Check this out: <http://example.com>");
+    }
+
+    #[test]
+    fn test_format_markdown_link_different_text() {
+        let mut text = String::from("Visit");
+        format_markdown_link(&mut text, "http://example.com", "Example Site");
+        assert_eq!(text, "Visit [Example Site](http://example.com)");
+    }
+
+    #[test]
+    fn test_format_markdown_link_empty_text() {
+        let mut text = String::from("Link:");
+        format_markdown_link(&mut text, "http://example.com", "");
+        assert_eq!(text, "Link: <http://example.com>");
+    }
+
+    #[test]
+    fn test_format_markdown_link_empty_buffer() {
+        let mut text = String::new();
+        format_markdown_link(&mut text, "http://example.com", "Example");
+        assert_eq!(text, "[Example](http://example.com)");
+    }
+
+    #[test]
+    fn test_format_markdown_link_adds_space() {
+        let mut text = String::from("Props.");
+        format_markdown_link(&mut text, "http://example.com", "Example");
+        assert_eq!(text, "Props. [Example](http://example.com)");
+    }
+
+    #[test]
+    fn test_format_markdown_link_no_double_space() {
+        let mut text = String::from("Check this ");
+        format_markdown_link(&mut text, "http://example.com", "link");
+        assert_eq!(text, "Check this [link](http://example.com)");
+    }
+
+    #[test]
+    fn test_format_markdown_link_after_newline() {
+        let mut text = String::from("Line one\n");
+        format_markdown_link(&mut text, "http://example.com", "link");
+        assert_eq!(text, "Line one\n[link](http://example.com)");
+    }
+
+    #[test]
+    fn test_format_markdown_link_https() {
+        let mut text = String::from("Secure:");
+        format_markdown_link(&mut text, "https://example.com", "https://example.com");
+        assert_eq!(text, "Secure: <https://example.com>");
+    }
 
     // Tests for escape_toml_string()
     #[test]
