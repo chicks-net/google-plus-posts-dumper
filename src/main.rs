@@ -532,7 +532,7 @@ fn generate_markdown(post_data: &PostData) -> String {
         }
     }
 
-    markdown
+    format!("{}\n", markdown.trim_end())
 }
 
 // Helper functions
