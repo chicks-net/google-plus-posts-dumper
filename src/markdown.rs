@@ -2,9 +2,32 @@
 
 use crate::models::PostData;
 use crate::utils::{clean_title, escape_toml_string};
+use std::path::Path;
+
+/// Transform an image path to /posts/YYYY-MM-DD-filename.ext format
+///
+/// # Arguments
+/// * `image_path` - The original image path from the HTML
+/// * `date_prefix` - The date prefix (YYYY-MM-DD) from the post filename
+///
+/// # Returns
+/// The transformed path in the format /posts/YYYY-MM-DD-filename.ext
+fn transform_image_path(image_path: &str, date_prefix: &str) -> String {
+    // Extract just the filename from the path
+    let filename = Path::new(image_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(image_path);
+
+    format!("/posts/{}-{}", date_prefix, filename)
+}
 
 /// Generate markdown from post data
-pub fn generate_markdown(post_data: &PostData) -> String {
+///
+/// # Arguments
+/// * `post_data` - The post data to generate markdown from
+/// * `date_prefix` - The date prefix (YYYY-MM-DD) for image paths
+pub fn generate_markdown(post_data: &PostData, date_prefix: &str) -> String {
     let mut markdown = String::new();
 
     // Generate TOML front matter
@@ -101,7 +124,8 @@ pub fn generate_markdown(post_data: &PostData) -> String {
     if !post_data.images.is_empty() {
         markdown.push_str("## Images\n\n");
         for image_url in &post_data.images {
-            markdown.push_str(&format!("![Image]({})\n\n", image_url));
+            let transformed_path = transform_image_path(image_url, date_prefix);
+            markdown.push_str(&format!("![Image]({})\n\n", transformed_path));
         }
     }
 
