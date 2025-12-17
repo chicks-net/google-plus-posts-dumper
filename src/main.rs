@@ -101,15 +101,32 @@ fn process_file(file_name: &str, dest_dir: &str) {
     // Note: html5ever may report parsing errors, but they typically don't affect extraction
 
     let post_data = extract_post_data(&dom.document);
-    let markdown_content = generate_markdown(&post_data);
 
-    // Generate output filename
+    // Generate output filename and extract date prefix
     let input_filename = file_path
         .file_stem()
         .unwrap_or_else(|| panic!("Failed to extract filename stem from: {}", file_name))
         .to_str()
         .unwrap_or_else(|| panic!("Filename contains invalid UTF-8: {}", file_name));
-    let output_filename = format!("{}.md", format_filename_date(input_filename));
+    let formatted_name = format_filename_date(input_filename);
+    let output_filename = format!("{}.md", formatted_name);
+
+    // Extract date prefix (YYYY-MM-DD) from formatted filename
+    // Check if it matches the expected format: YYYY-MM-DD
+    let date_prefix = if formatted_name.len() >= 10
+        && formatted_name.as_bytes().get(4) == Some(&b'-')
+        && formatted_name.as_bytes().get(7) == Some(&b'-')
+    {
+        &formatted_name[..10]
+    } else {
+        eprintln!(
+            "Warning: Could not extract date prefix from filename '{}' - images will use empty date prefix",
+            formatted_name
+        );
+        ""
+    };
+
+    let markdown_content = generate_markdown(&post_data, date_prefix);
     let output_path = Path::new(dest_dir).join(output_filename);
 
     // Write markdown file
