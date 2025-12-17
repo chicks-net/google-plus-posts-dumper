@@ -112,9 +112,17 @@ fn process_file(file_name: &str, dest_dir: &str) {
     let output_filename = format!("{}.md", formatted_name);
 
     // Extract date prefix (YYYY-MM-DD) from formatted filename
-    let date_prefix = if formatted_name.len() >= 10 && formatted_name.chars().nth(4) == Some('-') {
+    // Check if it matches the expected format: YYYY-MM-DD
+    let date_prefix = if formatted_name.len() >= 10
+        && formatted_name.as_bytes().get(4) == Some(&b'-')
+        && formatted_name.as_bytes().get(7) == Some(&b'-')
+    {
         &formatted_name[..10]
     } else {
+        eprintln!(
+            "Warning: Could not extract date prefix from filename '{}' - images will use empty date prefix",
+            formatted_name
+        );
         ""
     };
 
