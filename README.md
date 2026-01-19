@@ -12,8 +12,19 @@
 
 ## Status
 
-It does everything I have imagined it wanting to do.  I'm working on verifying
-the output with hugo.
+It does everything I have imagined it wanting to do.  I merged my content
+into my hugo blog and fixed a few bugs along the way.
+
+## Installation with brew
+
+To install with [Homebrew](https://brew.sh/):
+
+```shell
+brew tap chicks-net/chicks
+brew install google-plus-posts-dumper
+# or
+brew install chicks-net/chicks/google-plus-posts-dumper
+```
 
 ## Disclaimer and eating my words
 
