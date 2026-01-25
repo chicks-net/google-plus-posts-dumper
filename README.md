@@ -5,6 +5,8 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
 
+![google-plus-posts-dumper-banner](docs/google-plus-posts-dumper-banner.png)
+
 ## Motivation
 
 - I wanted to do something in rust since it has a reputation for being hard.
