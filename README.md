@@ -7,7 +7,7 @@
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chicks-net/google-plus-posts-dumper/verify.yaml)
 ![GitHub repo size](https://img.shields.io/github/repo-size/chicks-net/google-plus-posts-dumper)
 
-![google-plus-posts-dumper-banner](docs/google-plus-posts-dumper-banner.png)
+![google-plus-posts-dumper-banner](docs/google-plus-posts-dumper-banner2.png)
 
 ## Motivation
 
