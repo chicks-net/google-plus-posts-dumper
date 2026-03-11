@@ -42,7 +42,7 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
 
-    - uses: extractions/setup-just@v1
+    - uses: extractions/setup-just@v3
 
     - name: Check just version
       run: just --version
