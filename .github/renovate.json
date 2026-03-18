@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["every weekend"],
+  "timezone": "America/New_York",
+  "labels": ["dependencies"],
+  "assignees": ["chicks"],
+  "automerge": false,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "semanticCommitScope": "deps",
+      "commitMessageTopic": "{{{depName}}}",
+      "labels": ["rust"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "semanticCommitScope": "ci",
+      "commitMessageTopic": "{{{depName}}}",
+      "labels": ["github-actions"],
+      "groupName": "github-actions",
+      "groupSlug": "github-actions-deps"
+    }
+  ]
+}
