@@ -1,12 +1,12 @@
 {
   "permissions": {
     "allow": [
+      "Bash(cargo build:*)",
+      "Bash(cargo fmt:*)",
       "Bash(grep:*)",
       "Bash(just check)",
       "Bash(just claude_review)",
       "Bash(just try:*)",
-      "Bash(cargo build:*)",
-      "Bash(cargo fmt:*)",
       "Bash(markdownlint-cli2:*)"
     ],
     "deny": [],
