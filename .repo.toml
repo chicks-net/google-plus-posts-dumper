@@ -1,0 +1,15 @@
+# .repo.toml
+
+[about]
+description = "Google+ Posts dumper into Markdown"
+topics = ["blog", "blogging", "google-plus", "html-to-markdown", "html-to-markdown-converter", "hugo", "markdown"]
+
+[urls]
+git_ssh = "git@github.com:chicks-net/google-plus-posts-dumper.git"
+web_url = "https://github.com/chicks-net/google-plus-posts-dumper"
+
+[flags]
+claude = false
+claude-review = false
+copilot-review = false
+standard-release = true
