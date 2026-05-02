@@ -1,5 +1,6 @@
 # google-plus-posts-dumper
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chicks-net/google-plus-posts-dumper/badge)](https://scorecard.dev/viewer/?uri=github.com/chicks-net/google-plus-posts-dumper)
 [![made-with-rust](https://img.shields.io/badge/Made%20with-Rust-1f425f.svg)](https://www.rust-lang.org/)
 [![Homebrew](https://img.shields.io/badge/brew-chicks--net-fb923c?logo=homebrew&logoColor=white)](https://github.com/chicks-net/homebrew-chicks)
 ![Security Audit](https://img.shields.io/badge/security-cargo--audit-blue)
