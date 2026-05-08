@@ -27,6 +27,11 @@
       "labels": ["github-actions"],
       "groupName": "github-actions",
       "groupSlug": "github-actions-deps"
+    },
+    {
+      "matchDepNames": ["bridgecrewio/checkov-action"],
+      "overrideDatasource": "git-refs",
+      "overridePackageName": "https://github.com/bridgecrewio/checkov-action"
     }
   ]
 }
