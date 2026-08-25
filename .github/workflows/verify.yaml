@@ -30,7 +30,7 @@ jobs:
       RUSTFLAGS: --deny warnings
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Remove Broken WSL bash executable
       if: ${{ matrix.os == 'windows-latest' }}
@@ -42,7 +42,7 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
 
-    - uses: extractions/setup-just@v3
+    - uses: extractions/setup-just@v4
 
     - name: Check just version
       run: just --version
