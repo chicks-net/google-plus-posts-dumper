@@ -91,7 +91,7 @@ just sync           # Return to main + pull latest
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs and main branch pushes across macOS (14 + latest), Windows, Ubuntu with `RUSTFLAGS=--deny warnings`. CI includes `cargo-audit` for dependency security scanning.
+GitHub Actions (`.github/workflows/verify.yaml`) runs `just check` on all PRs and main branch pushes across macOS (15 + latest), Windows, Ubuntu with `RUSTFLAGS=--deny warnings`. CI includes `cargo-audit` for dependency security scanning.
 
 ## Testing
 
