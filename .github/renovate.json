@@ -13,6 +13,24 @@
   "lockFileMaintenance": {
     "enabled": true
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github/workflows/actionlint\\.ya?ml$"],
+      "matchStrings": ["ACTIONLINT_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "rhysd/actionlint",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github/workflows/actionlint\\.ya?ml$"],
+      "matchStrings": ["PYFLAKES_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "pyflakes"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": ["cargo"],
@@ -32,6 +50,10 @@
       "matchDepNames": ["bridgecrewio/checkov-action"],
       "overrideDatasource": "git-refs",
       "overridePackageName": "https://github.com/bridgecrewio/checkov-action"
+    },
+    {
+      "matchDepNames": ["rhysd/actionlint", "pyflakes"],
+      "minimumReleaseAge": "3 days"
     }
   ]
 }
