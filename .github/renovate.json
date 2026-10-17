@@ -47,11 +47,6 @@
       "groupSlug": "github-actions-deps"
     },
     {
-      "matchDepNames": ["bridgecrewio/checkov-action"],
-      "overrideDatasource": "git-refs",
-      "overridePackageName": "https://github.com/bridgecrewio/checkov-action"
-    },
-    {
       "matchDepNames": ["rhysd/actionlint", "pyflakes"],
       "minimumReleaseAge": "3 days"
     }
